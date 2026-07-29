@@ -1,0 +1,2 @@
+Alembic migrations for Accounts Manager.
+Managed via Flask-Migrate. See scripts/ and DEPLOY.md.
