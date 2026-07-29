@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="mb-0"><i class="bi bi-bank"></i> Loans &amp; EMIs</h2>
+    <a href="{{ url_for('add_loan') }}" class="btn btn-primary">+ Add Loan</a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-danger h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total Debt Outstanding</h5>
+                <h2>₹ {{ "%.2f"|format(total_debt) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-secondary h-100">
+            <div class="card-body">
+                <h5 class="card-title">Monthly EMIs (scheduled)</h5>
+                <h2>₹ {{ "%.2f"|format(monthly_emi) }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4 class="mb-3">Active Loans</h4>
+{% if active_loans %}
+<div class="row">
+    {% for loan in active_loans %}
+    <div class="col-md-6 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <h5 class="card-title mb-1">
+                        <a href="{{ url_for('loan_detail', loan_id=loan.id) }}" class="text-decoration-none">{{ loan.name }}</a>
+                    </h5>
+                    <span class="badge bg-{% if loan.lender_type == 'friend' %}info{% elif loan.lender_type == 'credit_card' %}warning text-dark{% else %}primary{% endif %}">
+                        {{ loan.lender_type.replace('_', ' ')|title }}
+                    </span>
+                </div>
+                <p class="mb-1">
+                    <span class="badge bg-light text-dark border">
+                        {% if (loan.payment_mode or 'emi') == 'one_time' %}One-time repayment{% else %}Monthly EMI{% endif %}
+                    </span>
+                </p>
+                <p class="text-muted small mb-2">
+                    Outstanding: <strong class="text-danger">₹ {{ "%.2f"|format(loan.outstanding) }}</strong>
+                    / Principal ₹ {{ "%.2f"|format(loan.principal) }}
+                </p>
+                {% if (loan.payment_mode or 'emi') == 'emi' and loan.emi_amount %}
+                <p class="mb-1">EMI: <strong>₹ {{ "%.2f"|format(loan.emi_amount) }}</strong>
+                    <span class="text-muted">on day {{ loan.emi_day }} each month</span>
+                </p>
+                <p class="mb-2 small text-muted">Next due: {{ loan.next_emi_date(today).strftime('%d %b %Y') }}</p>
+                {% else %}
+                <p class="mb-2 small text-muted">Pay full or partial whenever you can — no fixed schedule.</p>
+                {% endif %}
+                <a href="{{ url_for('loan_detail', loan_id=loan.id) }}" class="btn btn-sm btn-outline-primary">
+                    {% if (loan.payment_mode or 'emi') == 'one_time' %}Record repayment{% else %}Manage / Pay EMI{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">No active loans. Add bank loans, friend loans, or credit card balances.</div>
+{% endif %}
+
+{% if paid_loans %}
+<h4 class="mt-4 mb-3 text-muted">Paid Off</h4>
+<ul class="list-group">
+    {% for loan in paid_loans %}
+    <li class="list-group-item d-flex justify-content-between">
+        <span>{{ loan.name }} <small class="text-muted">({{ loan.lender_type.replace('_',' ')|title }})</small></span>
+        <a href="{{ url_for('loan_detail', loan_id=loan.id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

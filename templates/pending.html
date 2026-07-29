@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="mb-0"><i class="bi bi-clock-history"></i> Pending Payments</h2>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if mail_configured and current_user.email and due_soon_count > 0 %}
+        <form method="POST" action="{{ url_for('send_due_reminders') }}" class="d-inline">
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-envelope"></i> Email Due Reminders ({{ due_soon_count }})
+            </button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('add_transaction') }}" class="btn btn-primary">+ Add Pending</a>
+    </div>
+</div>
+
+{% if not mail_configured or not current_user.email %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    To send email reminders:
+    {% if not current_user.email %}
+        set your email in <a href="{{ url_for('settings') }}">Settings</a>
+        {% if not mail_configured %} and configure SMTP in <code>app.py</code>{% endif %}.
+    {% else %}
+        configure SMTP settings in <code>app.py</code> (see Settings for instructions).
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Total Pending to Pay</h5>
+                <h2>₹ {{ "%.2f"|format(pending_total) }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-warning">
+                <tr>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Account</th>
+                    <th>Due Date</th>
+                    <th>Last Reminder</th>
+                    <th class="text-end">Amount</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in pending %}
+                <tr>
+                    <td>
+                        <strong>{{ tx.description }}</strong>
+                        <br><small class="text-muted">{{ tx.type|capitalize }}</small>
+                    </td>
+                    <td>{{ tx.category }}</td>
+                    <td>{{ tx.account.name }}</td>
+                    <td>
+                        {% if tx.due_date %}
+                            {% if tx.due_date < today %}
+                                <span class="text-danger fw-bold">{{ tx.due_date.strftime('%d %b %Y') }}</span>
+                                <br><small class="text-danger">Overdue</small>
+                            {% elif tx.due_date == today %}
+                                <span class="text-warning fw-bold">{{ tx.due_date.strftime('%d %b %Y') }}</span>
+                                <br><small class="text-warning">Due today</small>
+                            {% else %}
+                                {{ tx.due_date.strftime('%d %b %Y') }}
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if tx.last_reminder_sent %}
+                            <small>{{ tx.last_reminder_sent.strftime('%d %b %Y %H:%M') }}</small>
+                        {% else %}
+                            <span class="text-muted">Never</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-bold text-danger">
+                        ₹ {{ "%.2f"|format(tx.amount) }}
+                    </td>
+                    <td class="text-center text-nowrap">
+                        {% if mail_configured and current_user.email %}
+                        <form method="POST" action="{{ url_for('send_reminder', tx_id=tx.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-primary" title="Send email reminder">
+                                <i class="bi bi-envelope"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('mark_paid', tx_id=tx.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-success" title="Mark as Paid">
+                                <i class="bi bi-check-lg"></i> Paid
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('delete_transaction', tx_id=tx.id) }}" class="d-inline"
+                              onsubmit="return confirm('Delete this pending payment?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                        <i class="bi bi-check-circle fs-1 text-success"></i>
+                        <p class="mt-2 mb-0">No pending payments. You're all clear!</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

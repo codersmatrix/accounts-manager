@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="mb-4">Add Loan / Credit Card Debt</h3>
+                <form method="POST" id="loanForm">
+                    <div class="mb-3">
+                        <label class="form-label">Name / Lender</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. HDFC Personal Loan, Rahul, Axis Credit Card" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select name="lender_type" class="form-select" id="lenderType">
+                            <option value="bank">Bank Loan</option>
+                            <option value="friend">Friend / Family</option>
+                            <option value="credit_card">Credit Card</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">How will you repay?</label>
+                        <select name="payment_mode" class="form-select" id="paymentMode">
+                            <option value="emi">Monthly EMI / installments</option>
+                            <option value="one_time">One-time / lump sum (when I can)</option>
+                        </select>
+                        <div class="form-text" id="paymentModeHelp">
+                            EMI: fixed monthly amount on a due day. One-time: repay full or partial whenever you want — no monthly schedule.
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Original Principal (₹)</label>
+                            <input type="number" step="0.01" name="principal" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Outstanding now (₹)</label>
+                            <input type="number" step="0.01" name="outstanding" class="form-control" placeholder="Same as principal if new">
+                            <div class="form-text">Leave blank to use full principal</div>
+                        </div>
+                    </div>
+                    <div class="row" id="emiFields">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">EMI / Min. due (₹)</label>
+                            <input type="number" step="0.01" name="emi_amount" class="form-control" value="0" id="emiAmount">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">EMI due day (1–28)</label>
+                            <input type="number" name="emi_day" class="form-control" value="5" min="1" max="28">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Interest % p.a. (optional)</label>
+                            <input type="number" step="0.01" name="interest_rate" class="form-control" value="0">
+                        </div>
+                    </div>
+                    <div class="mb-3" id="interestOnly" style="display:none;">
+                        <label class="form-label">Interest % p.a. (optional)</label>
+                        <input type="number" step="0.01" name="interest_rate_ot" class="form-control" value="0" id="interestOt">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Start date (optional)</label>
+                        <input type="date" name="start_date" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. pay when bonus comes, 24 months tenure…"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Loan</button>
+                    <a href="{{ url_for('loans') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function togglePaymentMode() {
+    const mode = document.getElementById('paymentMode').value;
+    const emiFields = document.getElementById('emiFields');
+    emiFields.style.display = mode === 'emi' ? '' : 'none';
+}
+document.getElementById('paymentMode').addEventListener('change', togglePaymentMode);
+togglePaymentMode();
+</script>
+{% endblock %}

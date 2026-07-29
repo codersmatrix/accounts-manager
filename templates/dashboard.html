@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Dashboard</h2>
+
+<div class="row mb-4">
+    <div class="col-6 col-md-2 mb-3">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body py-3">
+                <div class="small">Balance</div>
+                <h5 class="mb-0">₹ {{ "%.0f"|format(total_balance) }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2 mb-3">
+        <div class="card text-white bg-danger h-100">
+            <div class="card-body py-3">
+                <div class="small">Debt</div>
+                <h5 class="mb-0">₹ {{ "%.0f"|format(total_debt) }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2 mb-3">
+        <div class="card text-white bg-secondary h-100">
+            <div class="card-body py-3">
+                <div class="small">Monthly EMIs</div>
+                <h5 class="mb-0">₹ {{ "%.0f"|format(monthly_emi) }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2 mb-3">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body py-3">
+                <div class="small">Invested</div>
+                <h5 class="mb-0">₹ {{ "%.0f"|format(total_invested) }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2 mb-3">
+        <div class="card text-dark bg-light border h-100">
+            <div class="card-body py-3">
+                <div class="small">Monthly SIPs</div>
+                <h5 class="mb-0">₹ {{ "%.0f"|format(monthly_sip) }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2 mb-3">
+        <div class="card text-white bg-warning h-100">
+            <div class="card-body py-3">
+                <div class="small">Pending</div>
+                <h5 class="mb-0">₹ {{ "%.0f"|format(pending_total) }}</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if upcoming_emis %}
+<div class="card mb-4 border-danger">
+    <div class="card-header d-flex justify-content-between">
+        <span><i class="bi bi-bank"></i> Upcoming EMIs</span>
+        <a href="{{ url_for('loans') }}" class="btn btn-sm btn-outline-danger">Loans</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Loan</th><th>Due</th><th class="text-end">EMI</th><th></th></tr></thead>
+            <tbody>
+                {% for item in upcoming_emis %}
+                <tr>
+                    <td><a href="{{ url_for('loan_detail', loan_id=item.loan.id) }}">{{ item.loan.name }}</a></td>
+                    <td>{{ item.due_date.strftime('%d %b %Y') }}</td>
+                    <td class="text-end text-danger">₹ {{ "%.2f"|format(item.amount) }}</td>
+                    <td><a href="{{ url_for('loan_detail', loan_id=item.loan.id) }}" class="btn btn-sm btn-success">Pay</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if upcoming_sips %}
+<div class="card mb-4 border-info">
+    <div class="card-header d-flex justify-content-between">
+        <span><i class="bi bi-graph-up-arrow"></i> Upcoming SIPs (autopay)</span>
+        <a href="{{ url_for('investments') }}" class="btn btn-sm btn-outline-info">Investments</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Fund / Investment</th><th>Due</th><th class="text-end">SIP</th><th></th></tr></thead>
+            <tbody>
+                {% for item in upcoming_sips %}
+                <tr>
+                    <td><a href="{{ url_for('investment_detail', inv_id=item.inv.id) }}">{{ item.inv.name }}</a></td>
+                    <td>{{ item.due_date.strftime('%d %b %Y') }}</td>
+                    <td class="text-end">₹ {{ "%.2f"|format(item.amount) }}</td>
+                    <td><a href="{{ url_for('investment_detail', inv_id=item.inv.id) }}" class="btn btn-sm btn-success">Record</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between">
+                <span>Accounts</span>
+                <a href="{{ url_for('add_account') }}" class="btn btn-sm btn-primary">+ New</a>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for acc in accounts %}
+                <li class="list-group-item d-flex justify-content-between py-2">
+                    <span>{{ acc.name }} <small class="text-muted">({{ acc.account_type }})</small></span>
+                    <strong>₹ {{ "%.2f"|format(acc.balance) }}</strong>
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted">No accounts yet</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        {% if pending %}
+        <div class="card h-100 border-warning">
+            <div class="card-header bg-warning-subtle">Pending Payments</div>
+            <ul class="list-group list-group-flush">
+                {% for tx in pending[:5] %}
+                <li class="list-group-item d-flex justify-content-between py-2">
+                    <span>{{ tx.description }}{% if tx.due_date %} <small class="text-muted">{{ tx.due_date.strftime('%d %b') }}</small>{% endif %}</span>
+                    <strong class="text-danger">₹ {{ "%.2f"|format(tx.amount) }}</strong>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <span>Recent Completed Transactions</span>
+        <a href="{{ url_for('transactions') }}" class="btn btn-sm btn-outline-secondary">View all</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr><th>Date</th><th>Description</th><th>Category</th><th>Account</th><th class="text-end">Amount</th></tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr>
+                    <td>{{ tx.date.strftime('%d %b %Y') }}</td>
+                    <td>{{ tx.description }}</td>
+                    <td>{{ tx.category }}</td>
+                    <td>{{ tx.account.name }}</td>
+                    <td class="text-end {% if tx.type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                        {% if tx.type == 'income' %}+{% else %}-{% endif %}₹ {{ "%.2f"|format(tx.amount) }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted">No completed transactions yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
