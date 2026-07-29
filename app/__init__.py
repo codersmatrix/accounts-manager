@@ -5,7 +5,7 @@ from flask import Flask, render_template, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.config import config_by_name
-from app.extensions import db, login_manager, csrf, limiter
+from app.extensions import db, migrate, login_manager, csrf, limiter
 
 
 def create_app(config_name=None):
@@ -29,11 +29,10 @@ def create_app(config_name=None):
     app.config['REMEMBER_COOKIE_SECURE'] = cfg.REMEMBER_COOKIE_SECURE
     app.config['WTF_CSRF_SSL_STRICT'] = cfg.WTF_CSRF_SSL_STRICT
 
-    # Trust X-Forwarded-* when behind reverse proxy / load balancer
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-    # Extensions
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
     app.config.setdefault(
@@ -52,11 +51,9 @@ def create_app(config_name=None):
             return None
         return db.session.get(User, uid)
 
-    # Blueprints
     from app.routes import register_blueprints
     register_blueprints(app)
 
-    # Security headers on every response
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -65,7 +62,6 @@ def create_app(config_name=None):
         response.headers['Permissions-Policy'] = (
             'geolocation=(), microphone=(), camera=(), payment=()'
         )
-        # CSP: allow self + Bootstrap CDN used by templates
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
@@ -81,7 +77,6 @@ def create_app(config_name=None):
             response.headers['Strict-Transport-Security'] = (
                 'max-age=31536000; includeSubDomains'
             )
-        # Do not cache authenticated HTML pages
         if response.content_type and 'text/html' in response.content_type:
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
             response.headers['Pragma'] = 'no-cache'
@@ -90,13 +85,11 @@ def create_app(config_name=None):
     @app.before_request
     def enforce_https():
         if app.config.get('FORCE_HTTPS') and not app.debug:
-            # Honor proxy header set by ProxyFix
             if request.headers.get('X-Forwarded-Proto', 'http') == 'http' and not request.is_secure:
                 url = request.url.replace('http://', 'https://', 1)
                 from flask import redirect
                 return redirect(url, code=301)
 
-    # Safe error pages (no stack traces to clients)
     @app.errorhandler(400)
     def bad_request(e):
         return render_template('error.html', code=400, message='Bad request'), 400
@@ -121,7 +114,24 @@ def create_app(config_name=None):
 
     os.makedirs(app.instance_path, exist_ok=True)
 
-    with app.app_context():
-        db.create_all()
+    auto_migrate = os.environ.get('AUTO_MIGRATE', 'true').lower() in ('1', 'true', 'yes')
+    if auto_migrate:
+        with app.app_context():
+            _apply_migrations(app)
 
     return app
+
+
+def _apply_migrations(app):
+    """Apply pending Alembic migrations (upgrade to head)."""
+    from flask import current_app
+    try:
+        from flask_migrate import upgrade
+        upgrade(directory='migrations')
+        current_app.logger.info('Database migrations applied (upgrade head).')
+    except Exception as exc:
+        current_app.logger.warning(
+            'Migration upgrade failed (%s); falling back to db.create_all().',
+            exc,
+        )
+        db.create_all()
