@@ -93,3 +93,27 @@ docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
 ```
 
 See **[DEPLOY.md](DEPLOY.md)** for image build, volumes, and registry deploy.
+
+## Database migrations (Postgres / SQLite)
+
+Schema is managed with **Flask-Migrate (Alembic)**.
+
+```bash
+# Apply all pending migrations
+python scripts/db_upgrade.py
+
+# Create a new migration after changing models
+python scripts/db_migrate.py "describe change"
+
+# Fresh DB
+python scripts/db_init.py
+
+# Existing DB created with old create_all (mark as current, no DDL)
+python scripts/db_init.py --stamp
+
+# Show current revision
+python scripts/db_current.py
+```
+
+On Docker / production, set `AUTO_MIGRATE=true` (default). The entrypoint runs
+`scripts/db_upgrade.py` before gunicorn, and the app factory also upgrades on boot.

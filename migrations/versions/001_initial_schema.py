@@ -93,6 +93,7 @@ def upgrade():
         sa.PrimaryKeyConstraint('id'),
     )
 
+    # Helpful indexes for common filters
     op.create_index('ix_transaction_user_status', 'transaction', ['user_id', 'status'])
     op.create_index('ix_transaction_due_date', 'transaction', ['due_date'])
     op.create_index('ix_loan_user_status', 'loan', ['user_id', 'status'])

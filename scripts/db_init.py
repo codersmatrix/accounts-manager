@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Initialize database schema via migrations."""
+"""Initialize database schema via migrations.
+
+For a brand-new empty database this runs `upgrade head`.
+If tables already exist from an older create_all() deploy without alembic,
+use --stamp to mark the DB as current without re-running DDL:
+
+  python scripts/db_init.py
+  python scripts/db_init.py --stamp
+"""
 import argparse
 import os
 import sys
@@ -12,7 +20,11 @@ os.chdir(ROOT)
 
 def main():
     parser = argparse.ArgumentParser(description='Initialize or stamp the database')
-    parser.add_argument('--stamp', action='store_true', help='Stamp head without running migrations')
+    parser.add_argument(
+        '--stamp',
+        action='store_true',
+        help='Stamp head without running migrations (existing schema)',
+    )
     args = parser.parse_args()
 
     from app import create_app

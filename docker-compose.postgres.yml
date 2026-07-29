@@ -1,4 +1,4 @@
-# Override: web + Postgres together
+# Override: web + Postgres together with auto-migrations
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
 
@@ -6,12 +6,13 @@ services:
   web:
     environment:
       DATABASE_URL: postgresql://accounts:accounts@db:5432/accounts
+      AUTO_MIGRATE: "true"
     depends_on:
       db:
         condition: service_healthy
 
   db:
-    profiles: []   # always on when this override is used
+    profiles: []
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: accounts

@@ -20,6 +20,7 @@ services:
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       FORCE_HTTPS: ${FORCE_HTTPS:-false}
       ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+      AUTO_MIGRATE: ${AUTO_MIGRATE:-true}
       PORT: "8000"
       # Uncomment when using the postgres profile:
       # DATABASE_URL: postgresql://accounts:accounts@db:5432/accounts

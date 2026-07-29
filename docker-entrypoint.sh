@@ -2,13 +2,16 @@
 set -e
 
 echo "[entrypoint] Waiting for database (if any)..."
+# Optional short delay when Postgres is starting (compose healthcheck usually enough)
 if [ -n "$DATABASE_URL" ]; then
   python - <<'PY' || true
 import os, time, sys
 url = os.environ.get("DATABASE_URL", "")
 if not url or url.startswith("sqlite"):
     sys.exit(0)
+# Retry connect up to ~30s
 try:
+    import sqlalchemy
     from sqlalchemy import create_engine, text
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql://", 1)

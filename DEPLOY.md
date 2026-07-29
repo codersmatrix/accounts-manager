@@ -184,3 +184,39 @@ On the server, pull and run with the same env vars (`SECRET_KEY`, optional `DATA
 The app includes: CSRF protection, secure session cookies, rate-limited login/register,
 security headers (CSP, HSTS, X-Frame-Options), IDOR-safe ownership checks, input validation,
 and generic error pages (no stack traces).
+
+---
+
+## Database migrations
+
+### Local / CI
+
+```bash
+export DATABASE_URL=postgresql://user:pass@host:5432/accounts
+python scripts/db_upgrade.py
+```
+
+### Docker
+
+`AUTO_MIGRATE=true` (default) runs migrations in `docker-entrypoint.sh` before the app starts.
+Postgres compose waits for `pg_isready`, then applies migrations.
+
+### Heroku / Render
+
+Release phase (recommended):
+
+```bash
+# Procfile
+release: python scripts/db_upgrade.py
+web: gunicorn wsgi:app --bind 0.0.0.0:$PORT
+```
+
+Or rely on `AUTO_MIGRATE=true` at boot.
+
+### Existing databases (pre-migration)
+
+If tables were created with the old `db.create_all()`:
+
+```bash
+python scripts/db_init.py --stamp
+```
