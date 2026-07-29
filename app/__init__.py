@@ -23,7 +23,6 @@ def create_app(config_name=None):
     app.config.from_object(cfg)
     app.config['SQLALCHEMY_DATABASE_URI'] = cfg.database_uri()
 
-    # Extensions
     db.init_app(app)
     login_manager.init_app(app)
 
@@ -33,11 +32,11 @@ def create_app(config_name=None):
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # Blueprints
     from app.routes import register_blueprints
     register_blueprints(app)
 
-    # Create tables
+    os.makedirs(app.instance_path, exist_ok=True)
+
     with app.app_context():
         db.create_all()
 

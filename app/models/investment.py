@@ -12,7 +12,7 @@ class Investment(db.Model):
     monthly_sip = db.Column(db.Float, default=0.0)
     sip_day = db.Column(db.Integer, default=1)
     total_invested = db.Column(db.Float, default=0.0)
-    status = db.Column(db.String(20), default='active')  # active | stopped
+    status = db.Column(db.String(20), default='active')
     notes = db.Column(db.String(300), default='')
     start_date = db.Column(db.Date, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

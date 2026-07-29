@@ -8,8 +8,8 @@ class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(200), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    type = db.Column(db.String(10), nullable=False)  # income | expense
-    status = db.Column(db.String(20), default='completed')  # pending | completed
+    type = db.Column(db.String(10), nullable=False)
+    status = db.Column(db.String(20), default='completed')
     category = db.Column(db.String(50), default='General')
     due_date = db.Column(db.Date, nullable=True)
     date = db.Column(db.DateTime, default=datetime.utcnow)
