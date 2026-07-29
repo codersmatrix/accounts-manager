@@ -120,3 +120,67 @@ Vercel is built for serverless functions. A traditional Flask + SQLAlchemy + log
 - **[Fly.io](https://fly.io)** – `fly launch` with the same Dockerfile-free Python setup
 
 On all of these: set `SECRET_KEY`, `DATABASE_URL` (or their Postgres addon), and optional mail variables.
+
+---
+
+## Docker
+
+### Build & run (SQLite)
+
+```bash
+cd accounts_app
+cp .env.example .env   # set SECRET_KEY
+docker compose up --build
+```
+
+Open **http://localhost:8000**
+
+Data is stored in the `app-data` volume (`/app/instance` in the container).
+
+### Run with Postgres
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+```
+
+### Plain Docker (no Compose)
+
+```bash
+docker build -t accounts-manager .
+docker run -d --name accounts \
+  -p 8000:8000 \
+  -e SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')" \
+  -v accounts-data:/app/instance \
+  accounts-manager
+```
+
+### Deploy image to a host / registry
+
+```bash
+docker build -t your-registry/accounts-manager:latest .
+docker push your-registry/accounts-manager:latest
+```
+
+On the server, pull and run with the same env vars (`SECRET_KEY`, optional `DATABASE_URL`, `MAIL_*`).
+
+### Notes
+
+- Container runs as non-root user `appuser`
+- Healthcheck probes `http://127.0.0.1:8000/`
+- Gunicorn: 2 workers × 4 threads (tune via Dockerfile `CMD` if needed)
+
+---
+
+## Security (public deployment checklist)
+
+1. **Set a strong `SECRET_KEY`** (required in production; min 32 characters).
+2. **Serve only over HTTPS** and keep `SESSION_COOKIE_SECURE=true` / `FORCE_HTTPS=true`.
+3. Prefer **Postgres** over SQLite for multi-user / durable storage.
+4. Optionally set `ALLOW_REGISTRATION=false` after creating your account.
+5. Configure SMTP with an **app password**, never your main mailbox password.
+6. For multiple gunicorn workers, set `RATELIMIT_STORAGE_URI` to Redis so rate limits are shared.
+7. Keep dependencies updated (`pip install -U -r requirements.txt`).
+
+The app includes: CSRF protection, secure session cookies, rate-limited login/register,
+security headers (CSP, HSTS, X-Frame-Options), IDOR-safe ownership checks, input validation,
+and generic error pages (no stack traces).

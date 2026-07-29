@@ -69,11 +69,13 @@ def login():
         username = clamp_text(request.form.get('username'), 80)
         password = request.form.get('password') or ''
         user = User.query.filter_by(username=username).first()
+        # Constant-ish failure message; still verify hash only if user exists
         valid = user is not None and check_password_hash(user.password_hash, password)
         if valid:
-            session.clear()
+            session.clear()  # prevent session fixation
             login_user(user, remember=False)
             session.permanent = True
+            # Open-redirect safe next
             next_url = request.args.get('next')
             if next_url and next_url.startswith('/') and not next_url.startswith('//'):
                 return redirect(next_url)

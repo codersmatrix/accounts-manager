@@ -12,29 +12,71 @@ Built with **Python + Flask** (application factory, blueprints, modular services
 - Pending payments + mark paid
 - Email payment reminders
 - PWA (installable, offline shell)
-- SQLite locally / Postgres on Heroku or Docker
+- SQLite locally / Postgres on Heroku
 
 ## Project structure
 
 ```
 accounts_app/
-├── app/                   # Application factory, models, routes, services
-├── templates/  static/
-├── wsgi.py / run.py / app.py
-├── Dockerfile / docker-compose.yml
-├── requirements.txt / Procfile
-└── DEPLOY.md
+├── app/
+│   ├── __init__.py          # Application factory
+│   ├── config.py            # Config from environment
+│   ├── extensions.py        # db, login_manager
+│   ├── models/              # User, Account, Transaction, Loan, Investment
+│   ├── routes/              # Blueprints (auth, dashboard, accounts, …)
+│   └── services/            # Email & reminder helpers
+├── templates/
+├── static/                  # PWA manifest, SW, icons
+├── wsgi.py                  # Production entry (gunicorn)
+├── run.py                   # Local development
+├── app.py                   # Thin compatibility shim
+├── requirements.txt
+├── Procfile
+└── runtime.txt
 ```
 
 ## Quick start (local)
 
 ```bash
-python -m venv venv && source venv/bin/activate
+cd accounts_app
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 python run.py
 ```
 
 Open **http://127.0.0.1:5000**
+
+Or: `python app.py` (same app via compatibility shim).
+
+## Production
+
+```bash
+export FLASK_ENV=production
+export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+# optional: DATABASE_URL, MAIL_* 
+gunicorn wsgi:app --bind 0.0.0.0:$PORT
+```
+
+Heroku `Procfile` already uses `gunicorn wsgi:app`.
+
+See **[DEPLOY.md](DEPLOY.md)** for Heroku / Render / Railway.
+
+## Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `SECRET_KEY` | Session secret (required in production) |
+| `DATABASE_URL` | Postgres URL (optional; SQLite if unset) |
+| `FLASK_ENV` | `development` or `production` |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_DEFAULT_SENDER` | Email reminders |
+| `MAIL_SERVER` / `MAIL_PORT` | SMTP (defaults: Gmail) |
+| `REMINDER_DAYS_AHEAD` | Days before due to treat as “due soon” (default 3) |
+
+## Notes
+
+- First run creates SQLite `accounts.db` (or uses `DATABASE_URL`).
+- After schema changes from an older monolith, delete the old DB so tables are recreated.
 
 ## Docker
 
@@ -50,11 +92,4 @@ With Postgres:
 docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
 ```
 
-## Production
-
-```bash
-export FLASK_ENV=production SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
-gunicorn wsgi:app --bind 0.0.0.0:$PORT
-```
-
-See **[DEPLOY.md](DEPLOY.md)** for Heroku, Docker image publish, and env vars.
+See **[DEPLOY.md](DEPLOY.md)** for image build, volumes, and registry deploy.

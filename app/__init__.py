@@ -29,8 +29,10 @@ def create_app(config_name=None):
     app.config['REMEMBER_COOKIE_SECURE'] = cfg.REMEMBER_COOKIE_SECURE
     app.config['WTF_CSRF_SSL_STRICT'] = cfg.WTF_CSRF_SSL_STRICT
 
+    # Trust X-Forwarded-* when behind reverse proxy / load balancer
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
+    # Extensions
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
@@ -50,9 +52,11 @@ def create_app(config_name=None):
             return None
         return db.session.get(User, uid)
 
+    # Blueprints
     from app.routes import register_blueprints
     register_blueprints(app)
 
+    # Security headers on every response
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -61,6 +65,7 @@ def create_app(config_name=None):
         response.headers['Permissions-Policy'] = (
             'geolocation=(), microphone=(), camera=(), payment=()'
         )
+        # CSP: allow self + Bootstrap CDN used by templates
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
@@ -76,6 +81,7 @@ def create_app(config_name=None):
             response.headers['Strict-Transport-Security'] = (
                 'max-age=31536000; includeSubDomains'
             )
+        # Do not cache authenticated HTML pages
         if response.content_type and 'text/html' in response.content_type:
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
             response.headers['Pragma'] = 'no-cache'
@@ -84,11 +90,13 @@ def create_app(config_name=None):
     @app.before_request
     def enforce_https():
         if app.config.get('FORCE_HTTPS') and not app.debug:
+            # Honor proxy header set by ProxyFix
             if request.headers.get('X-Forwarded-Proto', 'http') == 'http' and not request.is_secure:
                 url = request.url.replace('http://', 'https://', 1)
                 from flask import redirect
                 return redirect(url, code=301)
 
+    # Safe error pages (no stack traces to clients)
     @app.errorhandler(400)
     def bad_request(e):
         return render_template('error.html', code=400, message='Bad request'), 400

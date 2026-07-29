@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
 from app.extensions import db
+from app.security import require_owner, clamp_text, safe_float, safe_int
 from app.models import Account, Transaction, Loan
 
 loans_bp = Blueprint('loans', __name__)
@@ -74,10 +75,7 @@ def add_loan():
 @loans_bp.route('/loan/<int:loan_id>')
 @login_required
 def loan_detail(loan_id):
-    loan = Loan.query.get_or_404(loan_id)
-    if loan.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('loans.loans'))
+    loan = require_owner(Loan.query.get(loan_id))
     payments = Transaction.query.filter_by(loan_id=loan.id).order_by(Transaction.date.desc()).all()
     accounts_list = Account.query.filter_by(user_id=current_user.id).all()
     next_due = loan.next_emi_date() if loan.status == 'active' else None
@@ -94,10 +92,7 @@ def loan_detail(loan_id):
 @loans_bp.route('/loan/<int:loan_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_loan(loan_id):
-    loan = Loan.query.get_or_404(loan_id)
-    if loan.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('loans.loans'))
+    loan = require_owner(Loan.query.get(loan_id))
     if request.method == 'POST':
         loan.name = request.form.get('name', '').strip() or loan.name
         loan.lender_type = request.form.get('lender_type', loan.lender_type)
@@ -134,10 +129,7 @@ def edit_loan(loan_id):
 @loans_bp.route('/loan/<int:loan_id>/delete', methods=['POST'])
 @login_required
 def delete_loan(loan_id):
-    loan = Loan.query.get_or_404(loan_id)
-    if loan.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('loans.loans'))
+    loan = require_owner(Loan.query.get(loan_id))
     for tx in Transaction.query.filter_by(loan_id=loan.id).all():
         tx.loan_id = None
     db.session.delete(loan)
@@ -149,10 +141,7 @@ def delete_loan(loan_id):
 @loans_bp.route('/loan/<int:loan_id>/pay_emi', methods=['POST'])
 @login_required
 def pay_emi(loan_id):
-    loan = Loan.query.get_or_404(loan_id)
-    if loan.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('loans.loans'))
+    loan = require_owner(Loan.query.get(loan_id))
     if loan.status != 'active':
         flash('Loan already paid off.', 'info')
         return redirect(url_for('loans.loan_detail', loan_id=loan.id))
@@ -168,10 +157,7 @@ def pay_emi(loan_id):
     if amount <= 0:
         flash('Amount must be positive.', 'danger')
         return redirect(url_for('loans.loan_detail', loan_id=loan.id))
-    account = Account.query.get_or_404(account_id)
-    if account.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('loans.loans'))
+    account = require_owner(Account.query.get(account_id))
     due_date = None
     if due_date_str:
         try:
@@ -221,10 +207,7 @@ def pay_emi(loan_id):
 @loans_bp.route('/loan/<int:loan_id>/create_pending_emi', methods=['POST'])
 @login_required
 def create_pending_emi(loan_id):
-    loan = Loan.query.get_or_404(loan_id)
-    if loan.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('loans.loans'))
+    loan = require_owner(Loan.query.get(loan_id))
     if loan.status != 'active' or not loan.emi_amount:
         flash('No EMI amount set.', 'warning')
         return redirect(url_for('loans.loan_detail', loan_id=loan.id))

@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
 from app.extensions import db
+from app.security import require_owner, clamp_text, safe_float, safe_int
 from app.models import Account, Transaction, Investment
 
 investments_bp = Blueprint('investments', __name__)
@@ -64,10 +65,7 @@ def add_investment():
 @investments_bp.route('/investment/<int:inv_id>')
 @login_required
 def investment_detail(inv_id):
-    inv = Investment.query.get_or_404(inv_id)
-    if inv.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('investments.investments'))
+    inv = require_owner(Investment.query.get(inv_id))
     payments = Transaction.query.filter_by(investment_id=inv.id).order_by(Transaction.date.desc()).all()
     accounts_list = Account.query.filter_by(user_id=current_user.id).all()
     next_sip = inv.next_sip_date() if inv.status == 'active' and inv.monthly_sip else None
@@ -84,10 +82,7 @@ def investment_detail(inv_id):
 @investments_bp.route('/investment/<int:inv_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_investment(inv_id):
-    inv = Investment.query.get_or_404(inv_id)
-    if inv.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('investments.investments'))
+    inv = require_owner(Investment.query.get(inv_id))
     if request.method == 'POST':
         inv.name = request.form.get('name', '').strip() or inv.name
         inv.inv_type = request.form.get('inv_type', inv.inv_type)
@@ -113,10 +108,7 @@ def edit_investment(inv_id):
 @investments_bp.route('/investment/<int:inv_id>/delete', methods=['POST'])
 @login_required
 def delete_investment(inv_id):
-    inv = Investment.query.get_or_404(inv_id)
-    if inv.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('investments.investments'))
+    inv = require_owner(Investment.query.get(inv_id))
     for tx in Transaction.query.filter_by(investment_id=inv.id).all():
         tx.investment_id = None
     db.session.delete(inv)
@@ -128,10 +120,7 @@ def delete_investment(inv_id):
 @investments_bp.route('/investment/<int:inv_id>/record_sip', methods=['POST'])
 @login_required
 def record_sip(inv_id):
-    inv = Investment.query.get_or_404(inv_id)
-    if inv.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('investments.investments'))
+    inv = require_owner(Investment.query.get(inv_id))
     accounts_list = Account.query.filter_by(user_id=current_user.id).all()
     if not accounts_list:
         flash('Create a bank/cash account first.', 'warning')
@@ -144,10 +133,7 @@ def record_sip(inv_id):
     if amount <= 0:
         flash('Amount must be positive.', 'danger')
         return redirect(url_for('investments.investment_detail', inv_id=inv.id))
-    account = Account.query.get_or_404(account_id)
-    if account.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('investments.investments'))
+    account = require_owner(Account.query.get(account_id))
     due_date = None
     if due_date_str:
         try:
@@ -185,10 +171,7 @@ def record_sip(inv_id):
 @investments_bp.route('/investment/<int:inv_id>/create_pending_sip', methods=['POST'])
 @login_required
 def create_pending_sip(inv_id):
-    inv = Investment.query.get_or_404(inv_id)
-    if inv.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('investments.investments'))
+    inv = require_owner(Investment.query.get(inv_id))
     if inv.status != 'active' or not inv.monthly_sip:
         flash('No SIP amount set.', 'warning')
         return redirect(url_for('investments.investment_detail', inv_id=inv.id))

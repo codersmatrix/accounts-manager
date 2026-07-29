@@ -16,7 +16,7 @@ def validate_username(username: str):
     return True, None
 
 
-def validate_email(email):
+def validate_email(email: str | None):
     if email is None or email == '':
         return True, None
     if len(email) > 120 or not EMAIL_RE.match(email):
@@ -24,18 +24,19 @@ def validate_email(email):
     return True, None
 
 
-def validate_password(password):
+def validate_password(password: str | None):
     min_len = current_app.config.get('MIN_PASSWORD_LENGTH', 10)
     if not password or len(password) < min_len:
         return False, f'Password must be at least {min_len} characters.'
     if len(password) > 128:
         return False, 'Password is too long.'
+    # Basic strength: reject all-whitespace / all same char
     if password.strip() == '' or len(set(password)) < 3:
         return False, 'Password is too weak. Use a mix of characters.'
     return True, None
 
 
-def clamp_text(value, max_len=None) -> str:
+def clamp_text(value: str | None, max_len: int | None = None) -> str:
     if value is None:
         return ''
     max_len = max_len or current_app.config.get('MAX_TEXT_LENGTH', 300)
@@ -51,6 +52,7 @@ def safe_float(value, default=0.0, min_v=None, max_v=None):
         n = min_v
     if max_v is not None and n > max_v:
         n = max_v
+    # Guard against inf/nan
     if n != n or n in (float('inf'), float('-inf')):
         return default
     return n

@@ -3,6 +3,7 @@
 <div class="row justify-content-center">
     <div class="col-md-7">
         <h2 class="mb-4"><i class="bi bi-gear"></i> Settings</h2>
+
         <div class="card shadow mb-4">
             <div class="card-header">Your Email</div>
             <div class="card-body">
@@ -12,27 +13,51 @@
                         <label class="form-label">Email address for payment reminders</label>
                         <input type="email" name="email" class="form-control"
                                value="{{ current_user.email or '' }}"
-                               placeholder="you@example.com" maxlength="120">
+                               placeholder="you@example.com">
                         <div class="form-text">Reminders for pending payments will be sent here.</div>
                     </div>
                     <button type="submit" class="btn btn-primary">Save</button>
                 </form>
             </div>
         </div>
+
         <div class="card shadow mb-4">
             <div class="card-header">Email Configuration Status</div>
             <div class="card-body">
                 {% if mail_configured %}
-                    <p class="text-success mb-2"><i class="bi bi-check-circle-fill"></i> SMTP is configured.</p>
+                    <p class="text-success mb-2">
+                        <i class="bi bi-check-circle-fill"></i> SMTP is configured. You can send reminders.
+                    </p>
                     {% if current_user.email %}
                     <form method="POST" action="{{ url_for('settings.test_email') }}" class="d-inline">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-envelope"></i> Send Test Email</button>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-envelope"></i> Send Test Email
+                        </button>
                     </form>
+                    {% else %}
+                    <p class="text-muted small mb-0">Save your email above, then you can send a test email.</p>
                     {% endif %}
                 {% else %}
-                    <p class="text-warning mb-2"><i class="bi bi-exclamation-triangle-fill"></i> SMTP is not configured yet.</p>
-                    <p class="small text-muted">Set MAIL_USERNAME, MAIL_PASSWORD, MAIL_DEFAULT_SENDER as environment variables.</p>
+                    <p class="text-warning mb-2">
+                        <i class="bi bi-exclamation-triangle-fill"></i> SMTP is not configured yet.
+                    </p>
+                    <p class="small text-muted mb-0">
+                        To enable email reminders, set these in <code>app.py</code> (or as environment variables):
+                    </p>
+                    <ul class="small text-muted mt-2">
+                        <li><code>MAIL_USERNAME</code> – your SMTP email (e.g. Gmail address)</li>
+                        <li><code>MAIL_PASSWORD</code> – app password (for Gmail: create one at myaccount.google.com/apppasswords)</li>
+                        <li><code>MAIL_DEFAULT_SENDER</code> – usually the same as MAIL_USERNAME</li>
+                        <li><code>MAIL_SERVER</code> – default <code>smtp.gmail.com</code></li>
+                        <li><code>MAIL_PORT</code> – default <code>587</code></li>
+                    </ul>
+                    <p class="small text-muted mt-2 mb-0">
+                        Example (near the top of <code>app.py</code>):
+                    </p>
+                    <pre class="bg-light p-2 small rounded mt-1">app.config['MAIL_USERNAME'] = 'you@gmail.com'
+app.config['MAIL_PASSWORD'] = 'your-16-char-app-password'
+app.config['MAIL_DEFAULT_SENDER'] = 'you@gmail.com'</pre>
                 {% endif %}
             </div>
         </div>

@@ -3,6 +3,9 @@
 # SQLite (default):
 #   docker compose up --build
 #
+# Postgres:
+#   docker compose --profile postgres up --build
+#
 # Then open http://localhost:8000
 
 services:
@@ -18,15 +21,19 @@ services:
       FORCE_HTTPS: ${FORCE_HTTPS:-false}
       ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
       PORT: "8000"
+      # Uncomment when using the postgres profile:
+      # DATABASE_URL: postgresql://accounts:accounts@db:5432/accounts
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER:-}
       MAIL_SERVER: ${MAIL_SERVER:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}
     volumes:
+      # Persist SQLite database outside the container
       - app-data:/app/instance
     restart: unless-stopped
 
+  # Optional Postgres – start with: docker compose --profile postgres up --build
   db:
     image: postgres:16-alpine
     profiles: ["postgres"]

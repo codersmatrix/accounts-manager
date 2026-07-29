@@ -6,6 +6,7 @@
             <div class="card-body">
                 <h3 class="mb-4">Edit Loan – {{ loan.name }}</h3>
                 <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label class="form-label">Name / Lender</label>
                         <input type="text" name="name" class="form-control" value="{{ loan.name }}" required>

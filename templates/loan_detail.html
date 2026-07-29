@@ -26,6 +26,7 @@
         <a href="{{ url_for('loans.edit_loan', loan_id=loan.id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
         <form method="POST" action="{{ url_for('loans.delete_loan', loan_id=loan.id) }}" class="d-inline"
               onsubmit="return confirm('Delete this loan?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
         </form>
     </div>
@@ -79,6 +80,7 @@
     </div>
     <div class="card-body">
         <form method="POST" action="{{ url_for('loans.pay_emi', loan_id=loan.id) }}" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="col-md-3">
                 <label class="form-label">Pay from account</label>
                 <select name="account_id" class="form-select" required>

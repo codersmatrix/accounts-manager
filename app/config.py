@@ -24,41 +24,58 @@ def _require_secret_key():
 
 
 class Config:
-    SECRET_KEY = None
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {'pool_pre_ping': True}
+    """Base configuration loaded from environment variables."""
 
+    SECRET_KEY = None  # set in init via from_object + override
+
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+    }
+
+    # Session / cookie hardening
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
-    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', '').lower() in ('1', 'true', 'yes')
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', '').lower() in (
+        '1', 'true', 'yes'
+    )
     REMEMBER_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SAMESITE = 'Lax'
     REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
-    PERMANENT_SESSION_LIFETIME = int(os.environ.get('SESSION_LIFETIME_SECONDS', 28800))
+    PERMANENT_SESSION_LIFETIME = int(os.environ.get('SESSION_LIFETIME_SECONDS', 28800))  # 8h
     SESSION_REFRESH_EACH_REQUEST = True
 
+    # CSRF
     WTF_CSRF_ENABLED = True
-    WTF_CSRF_TIME_LIMIT = 3600
+    WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
     WTF_CSRF_SSL_STRICT = SESSION_COOKIE_SECURE
 
-    ALLOW_REGISTRATION = os.environ.get('ALLOW_REGISTRATION', 'true').lower() in ('1', 'true', 'yes')
+    # Feature flags
+    ALLOW_REGISTRATION = os.environ.get('ALLOW_REGISTRATION', 'true').lower() in (
+        '1', 'true', 'yes'
+    )
+    # Prefer HTTPS redirects when behind TLS terminator
     PREFERRED_URL_SCHEME = os.environ.get('PREFERRED_URL_SCHEME', 'http')
     FORCE_HTTPS = os.environ.get('FORCE_HTTPS', '').lower() in ('1', 'true', 'yes')
 
+    # Mail / SMTP
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ('1', 'true', 'yes')
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
     MAIL_DEFAULT_SENDER = (
-        os.environ.get('MAIL_DEFAULT_SENDER', '') or os.environ.get('MAIL_USERNAME', '')
+        os.environ.get('MAIL_DEFAULT_SENDER', '')
+        or os.environ.get('MAIL_USERNAME', '')
     )
     REMINDER_DAYS_AHEAD = int(os.environ.get('REMINDER_DAYS_AHEAD', 3))
 
+    # Password policy
     MIN_PASSWORD_LENGTH = int(os.environ.get('MIN_PASSWORD_LENGTH', 10))
     MAX_USERNAME_LENGTH = 80
     MAX_TEXT_LENGTH = 300
 
+    # Rate limits (string format for Flask-Limiter)
     RATELIMIT_DEFAULT = os.environ.get('RATELIMIT_DEFAULT', '200 per hour;50 per minute')
     RATELIMIT_LOGIN = os.environ.get('RATELIMIT_LOGIN', '10 per minute;30 per hour')
     RATELIMIT_REGISTER = os.environ.get('RATELIMIT_REGISTER', '5 per hour')
@@ -88,7 +105,10 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
-    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'true').lower() in ('1', 'true', 'yes')
+    # Secure cookies on by default in production (set SESSION_COOKIE_SECURE=false only if no TLS)
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'true').lower() in (
+        '1', 'true', 'yes'
+    )
     REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
     WTF_CSRF_SSL_STRICT = SESSION_COOKIE_SECURE
     FORCE_HTTPS = os.environ.get('FORCE_HTTPS', 'true').lower() in ('1', 'true', 'yes')
