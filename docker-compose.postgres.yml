@@ -1,0 +1,30 @@
+# Override: web + Postgres together
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+
+services:
+  web:
+    environment:
+      DATABASE_URL: postgresql://accounts:accounts@db:5432/accounts
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    profiles: []
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: accounts
+      POSTGRES_PASSWORD: accounts
+      POSTGRES_DB: accounts
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U accounts -d accounts"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pg-data:
