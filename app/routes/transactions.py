@@ -3,8 +3,9 @@ from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models import Account, Transaction, Loan, Investment
+from app.security import require_owner, clamp_text, safe_float
 from app.services.email import (
     is_mail_configured,
     send_email,
@@ -58,10 +59,13 @@ def add_transaction():
     accounts_list = Account.query.filter_by(user_id=current_user.id).all()
     if request.method == 'POST':
         account_id = int(request.form.get('account_id'))
-        amount = float(request.form.get('amount'))
+        amount = safe_float(request.form.get('amount'), 0.0, min_v=0.01, max_v=1e12)
+        if amount <= 0:
+            flash('Amount must be positive.', 'danger')
+            return redirect(url_for('transactions.add_transaction'))
         tx_type = request.form.get('type')
-        description = request.form.get('description').strip()
-        category = request.form.get('category') or 'General'
+        description = clamp_text(request.form.get('description'), 200)
+        category = clamp_text(request.form.get('category'), 50) or 'General'
         status = request.form.get('status', 'completed')
         due_date_str = request.form.get('due_date')
         due_date = None
@@ -71,10 +75,7 @@ def add_transaction():
             except ValueError:
                 pass
 
-        account = Account.query.get_or_404(account_id)
-        if account.user_id != current_user.id:
-            flash('Unauthorized', 'danger')
-            return redirect(url_for('dashboard.dashboard'))
+        account = require_owner(Account.query.get(account_id))
 
         if status == 'completed':
             if tx_type == 'income':
@@ -106,10 +107,7 @@ def add_transaction():
 @transactions_bp.route('/mark_paid/<int:tx_id>', methods=['POST'])
 @login_required
 def mark_paid(tx_id):
-    tx = Transaction.query.get_or_404(tx_id)
-    if tx.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('dashboard.dashboard'))
+    tx = require_owner(Transaction.query.get(tx_id))
     if tx.status != 'pending':
         flash('Already completed.', 'warning')
         return redirect(url_for('transactions.pending_payments'))
@@ -143,10 +141,7 @@ def mark_paid(tx_id):
 @transactions_bp.route('/delete_transaction/<int:tx_id>', methods=['POST'])
 @login_required
 def delete_transaction(tx_id):
-    tx = Transaction.query.get_or_404(tx_id)
-    if tx.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('dashboard.dashboard'))
+    tx = require_owner(Transaction.query.get(tx_id))
 
     if tx.status == 'completed':
         account = Account.query.get(tx.account_id)
@@ -173,11 +168,9 @@ def delete_transaction(tx_id):
 
 @transactions_bp.route('/send_reminder/<int:tx_id>', methods=['POST'])
 @login_required
+@limiter.limit('10 per hour')
 def send_reminder(tx_id):
-    tx = Transaction.query.get_or_404(tx_id)
-    if tx.user_id != current_user.id:
-        flash('Unauthorized', 'danger')
-        return redirect(url_for('transactions.pending_payments'))
+    tx = require_owner(Transaction.query.get(tx_id))
     if not current_user.email:
         flash('Set your email in Settings first.', 'warning')
         return redirect(url_for('settings.settings'))
@@ -194,6 +187,7 @@ def send_reminder(tx_id):
 
 @transactions_bp.route('/send_due_reminders', methods=['POST'])
 @login_required
+@limiter.limit('5 per hour')
 def send_due_reminders():
     if not current_user.email:
         flash('Set your email in Settings first.', 'warning')
