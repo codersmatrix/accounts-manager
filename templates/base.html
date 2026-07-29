@@ -28,7 +28,7 @@
     {% if current_user.is_authenticated %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard.dashboard') }}">
                 <i class="bi bi-wallet2"></i> Accounts Manager
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
@@ -36,14 +36,14 @@
             </button>
             <div class="collapse navbar-collapse" id="navMenu">
                 <div class="navbar-nav ms-auto">
-                    <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
-                    <a class="nav-link" href="{{ url_for('accounts') }}">Accounts</a>
-                    <a class="nav-link" href="{{ url_for('loans') }}">Loans</a>
-                    <a class="nav-link" href="{{ url_for('investments') }}">Investments</a>
-                    <a class="nav-link" href="{{ url_for('transactions') }}">Txns</a>
-                    <a class="nav-link" href="{{ url_for('pending_payments') }}">Pending</a>
-                    <a class="nav-link" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i></a>
-                    <a class="nav-link" href="{{ url_for('logout') }}">{{ current_user.username }}</a>
+                    <a class="nav-link" href="{{ url_for('dashboard.dashboard') }}">Dashboard</a>
+                    <a class="nav-link" href="{{ url_for('accounts.accounts') }}">Accounts</a>
+                    <a class="nav-link" href="{{ url_for('loans.loans') }}">Loans</a>
+                    <a class="nav-link" href="{{ url_for('investments.investments') }}">Investments</a>
+                    <a class="nav-link" href="{{ url_for('transactions.transactions') }}">Txns</a>
+                    <a class="nav-link" href="{{ url_for('transactions.pending_payments') }}">Pending</a>
+                    <a class="nav-link" href="{{ url_for('settings.settings') }}"><i class="bi bi-gear"></i></a>
+                    <a class="nav-link" href="{{ url_for('auth.logout') }}">{{ current_user.username }}</a>
                 </div>
             </div>
         </div>

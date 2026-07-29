@@ -1,118 +1,79 @@
-# Accounts Management Web App
+# Accounts Manager
 
-A simple, ready-to-run personal/business accounts management web application built with **Python + Flask**.
+Production-ready **PWA** for personal finance: accounts, loans/EMIs, mutual-fund SIPs, pending payments, and email reminders.
+
+Built with **Python + Flask** (application factory, blueprints, modular services).
 
 ## Features
 
-- **PWA** – install on phone/desktop, works offline for cached pages, home-screen icon
+- Accounts (bank, cash, credit card, wallet)
+- Loans (bank, friend, credit card) with **EMI or one-time** repayment
+- Investments / mutual fund **SIPs** with monthly autopay tracking
+- Pending payments + mark paid
+- Email payment reminders
+- PWA (installable, offline shell)
+- SQLite locally / Postgres on Heroku
 
-- **Loans & EMIs** – bank loans, friend loans, credit card balances
-- Track outstanding, monthly EMI, due day; record payments or add as pending
-- Dashboard shows total debt + upcoming EMIs
+## Project structure
 
-- User registration & login (with optional email)
-- Multiple accounts (Bank, Cash, Credit Card, Wallet, Investment)
-- Income & Expense transactions
-- **Pending Payments** – record bills to pay later (balance unchanged until marked paid)
-- **Email payment reminders** – one-click or batch email for due/overdue pending payments
-- Automatic balance updates when marked paid
-- Dashboard with total balance + pending total + due-soon count
-- Transaction history with filters (All / Completed / Pending)
-- Settings page for email + SMTP test
-- Clean Bootstrap 5 UI
+```
+accounts_app/
+├── app/
+│   ├── __init__.py          # Application factory
+│   ├── config.py            # Config from environment
+│   ├── extensions.py        # db, login_manager
+│   ├── models/              # User, Account, Transaction, Loan, Investment
+│   ├── routes/              # Blueprints (auth, dashboard, accounts, …)
+│   └── services/            # Email & reminder helpers
+├── templates/
+├── static/                  # PWA manifest, SW, icons
+├── wsgi.py                  # Production entry (gunicorn)
+├── run.py                   # Local development
+├── app.py                   # Thin compatibility shim
+├── requirements.txt
+├── Procfile
+└── runtime.txt
+```
 
-## Requirements
-
-- Python 3.8+
-- pip
-
-## Quick Start
+## Quick start (local)
 
 ```bash
-unzip accounts_app.zip
 cd accounts_app
-
 python -m venv venv
-# Windows: venv\Scripts\activate
-source venv/bin/activate
-
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python app.py
+python run.py
 ```
 
 Open **http://127.0.0.1:5000**
 
-## Email Payment Reminders
+Or: `python app.py` (same app via compatibility shim).
 
-### 1. Set your email in the app
+## Production
 
-Register with an email, or go to **Settings** (gear icon) and save your email address.
-
-### 2. Configure SMTP (required to send mail)
-
-Edit the top of `app.py` (or set environment variables):
-
-```python
-app.config['MAIL_USERNAME'] = 'you@gmail.com'
-app.config['MAIL_PASSWORD'] = 'your-16-char-app-password'   # Gmail App Password
-app.config['MAIL_DEFAULT_SENDER'] = 'you@gmail.com'
-# Optional:
-# app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-# app.config['MAIL_PORT'] = 587
-# app.config['REMINDER_DAYS_AHEAD'] = 3   # treat as "due soon" within N days
+```bash
+export FLASK_ENV=production
+export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+# optional: DATABASE_URL, MAIL_* 
+gunicorn wsgi:app --bind 0.0.0.0:$PORT
 ```
 
-**Gmail setup:**
-1. Enable 2-Step Verification on your Google account
-2. Create an [App Password](https://myaccount.google.com/apppasswords)
-3. Use that 16-character password as `MAIL_PASSWORD` (not your normal Gmail password)
+Heroku `Procfile` already uses `gunicorn wsgi:app`.
 
-Other providers (Outlook, Yahoo, custom SMTP) work the same way with their server/port.
+See **[DEPLOY.md](DEPLOY.md)** for Heroku / Render / Railway.
 
-### 3. Send reminders
+## Environment variables
 
-On the **Pending** page:
-
-- **Envelope icon** on a row → email reminder for that single payment
-- **Email Due Reminders** button → emails all pending expenses that are overdue or due within the next few days (items need a due date)
-
-You can also send a **Test Email** from Settings.
-
-## How Pending Payments Work
-
-1. Add transaction → Status = **Pending** → optional **Due Date**
-2. Balance is **not** changed yet
-3. Open **Pending** → **Mark Paid** when you pay → balance updates
+| Variable | Purpose |
+|----------|---------|
+| `SECRET_KEY` | Session secret (required in production) |
+| `DATABASE_URL` | Postgres URL (optional; SQLite if unset) |
+| `FLASK_ENV` | `development` or `production` |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_DEFAULT_SENDER` | Email reminders |
+| `MAIL_SERVER` / `MAIL_PORT` | SMTP (defaults: Gmail) |
+| `REMINDER_DAYS_AHEAD` | Days before due to treat as “due soon” (default 3) |
 
 ## Notes
 
-- SQLite database `accounts.db` is created on first run
-- If upgrading from an older version, delete `accounts.db` (or `instance/`) so new columns (`email`, `status`, `due_date`, `last_reminder_sent`) are created
-- Change `SECRET_KEY` before any production use
-
-## Project Structure
-
-```
-accounts_app/
-├── app.py
-├── requirements.txt
-├── README.md
-└── templates/
-    ├── base.html
-    ├── login.html
-    ├── register.html
-    ├── dashboard.html
-    ├── accounts.html
-    ├── add_account.html
-    ├── transactions.html
-    ├── add_transaction.html
-    ├── pending.html
-    └── settings.html
-```
-
-## Deploy to Heroku / Vercel
-
-See **[DEPLOY.md](DEPLOY.md)** for step-by-step instructions.
-
-- **Heroku** (recommended): uses Gunicorn + Postgres
-- **Vercel**: possible but limited (needs external database; serverless constraints)
+- First run creates SQLite `accounts.db` (or uses `DATABASE_URL`).
+- After schema changes from an older monolith, delete the old DB so tables are recreated.

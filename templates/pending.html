@@ -4,13 +4,13 @@
     <h2 class="mb-0"><i class="bi bi-clock-history"></i> Pending Payments</h2>
     <div class="d-flex gap-2 flex-wrap">
         {% if mail_configured and current_user.email and due_soon_count > 0 %}
-        <form method="POST" action="{{ url_for('send_due_reminders') }}" class="d-inline">
+        <form method="POST" action="{{ url_for('transactions.send_due_reminders') }}" class="d-inline">
             <button type="submit" class="btn btn-outline-primary">
                 <i class="bi bi-envelope"></i> Email Due Reminders ({{ due_soon_count }})
             </button>
         </form>
         {% endif %}
-        <a href="{{ url_for('add_transaction') }}" class="btn btn-primary">+ Add Pending</a>
+        <a href="{{ url_for('transactions.add_transaction') }}" class="btn btn-primary">+ Add Pending</a>
     </div>
 </div>
 
@@ -19,7 +19,7 @@
     <i class="bi bi-info-circle"></i>
     To send email reminders:
     {% if not current_user.email %}
-        set your email in <a href="{{ url_for('settings') }}">Settings</a>
+        set your email in <a href="{{ url_for('settings.settings') }}">Settings</a>
         {% if not mail_configured %} and configure SMTP in <code>app.py</code>{% endif %}.
     {% else %}
         configure SMTP settings in <code>app.py</code> (see Settings for instructions).
@@ -88,18 +88,18 @@
                     </td>
                     <td class="text-center text-nowrap">
                         {% if mail_configured and current_user.email %}
-                        <form method="POST" action="{{ url_for('send_reminder', tx_id=tx.id) }}" class="d-inline">
+                        <form method="POST" action="{{ url_for('transactions.send_reminder', tx_id=tx.id) }}" class="d-inline">
                             <button type="submit" class="btn btn-sm btn-outline-primary" title="Send email reminder">
                                 <i class="bi bi-envelope"></i>
                             </button>
                         </form>
                         {% endif %}
-                        <form method="POST" action="{{ url_for('mark_paid', tx_id=tx.id) }}" class="d-inline">
+                        <form method="POST" action="{{ url_for('transactions.mark_paid', tx_id=tx.id) }}" class="d-inline">
                             <button type="submit" class="btn btn-sm btn-success" title="Mark as Paid">
                                 <i class="bi bi-check-lg"></i> Paid
                             </button>
                         </form>
-                        <form method="POST" action="{{ url_for('delete_transaction', tx_id=tx.id) }}" class="d-inline"
+                        <form method="POST" action="{{ url_for('transactions.delete_transaction', tx_id=tx.id) }}" class="d-inline"
                               onsubmit="return confirm('Delete this pending payment?');">
                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
                                 <i class="bi bi-trash"></i>

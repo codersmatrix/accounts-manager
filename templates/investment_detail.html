@@ -2,7 +2,7 @@
 {% block content %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('investments') }}">Investments</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('investments.investments') }}">Investments</a></li>
         <li class="breadcrumb-item active">{{ inv.name }}</li>
     </ol>
 </nav>
@@ -18,8 +18,8 @@
         {% endif %}
     </div>
     <div>
-        <a href="{{ url_for('edit_investment', inv_id=inv.id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-        <form method="POST" action="{{ url_for('delete_investment', inv_id=inv.id) }}" class="d-inline"
+        <a href="{{ url_for('investments.edit_investment', inv_id=inv.id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
+        <form method="POST" action="{{ url_for('investments.delete_investment', inv_id=inv.id) }}" class="d-inline"
               onsubmit="return confirm('Delete this investment?');">
             <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
         </form>
@@ -55,7 +55,7 @@
 <div class="card mb-4 border-success">
     <div class="card-header bg-success text-white">Record SIP / Investment</div>
     <div class="card-body">
-        <form method="POST" action="{{ url_for('record_sip', inv_id=inv.id) }}" class="row g-3">
+        <form method="POST" action="{{ url_for('investments.record_sip', inv_id=inv.id) }}" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Debit from account</label>
                 <select name="account_id" class="form-select" required>
@@ -86,7 +86,7 @@
             <div class="col-12">
                 <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Record</button>
                 {% if inv.monthly_sip %}
-                <button type="submit" formaction="{{ url_for('create_pending_sip', inv_id=inv.id) }}"
+                <button type="submit" formaction="{{ url_for('investments.create_pending_sip', inv_id=inv.id) }}"
                         class="btn btn-outline-warning">Quick: Add this month as Pending</button>
                 {% endif %}
             </div>

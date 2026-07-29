@@ -2,7 +2,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <h2 class="mb-0"><i class="bi bi-bank"></i> Loans &amp; EMIs</h2>
-    <a href="{{ url_for('add_loan') }}" class="btn btn-primary">+ Add Loan</a>
+    <a href="{{ url_for('loans.add_loan') }}" class="btn btn-primary">+ Add Loan</a>
 </div>
 
 <div class="row mb-4">
@@ -33,7 +33,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <h5 class="card-title mb-1">
-                        <a href="{{ url_for('loan_detail', loan_id=loan.id) }}" class="text-decoration-none">{{ loan.name }}</a>
+                        <a href="{{ url_for('loans.loan_detail', loan_id=loan.id) }}" class="text-decoration-none">{{ loan.name }}</a>
                     </h5>
                     <span class="badge bg-{% if loan.lender_type == 'friend' %}info{% elif loan.lender_type == 'credit_card' %}warning text-dark{% else %}primary{% endif %}">
                         {{ loan.lender_type.replace('_', ' ')|title }}
@@ -56,7 +56,7 @@
                 {% else %}
                 <p class="mb-2 small text-muted">Pay full or partial whenever you can — no fixed schedule.</p>
                 {% endif %}
-                <a href="{{ url_for('loan_detail', loan_id=loan.id) }}" class="btn btn-sm btn-outline-primary">
+                <a href="{{ url_for('loans.loan_detail', loan_id=loan.id) }}" class="btn btn-sm btn-outline-primary">
                     {% if (loan.payment_mode or 'emi') == 'one_time' %}Record repayment{% else %}Manage / Pay EMI{% endif %}
                 </a>
             </div>
@@ -74,7 +74,7 @@
     {% for loan in paid_loans %}
     <li class="list-group-item d-flex justify-content-between">
         <span>{{ loan.name }} <small class="text-muted">({{ loan.lender_type.replace('_',' ')|title }})</small></span>
-        <a href="{{ url_for('loan_detail', loan_id=loan.id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+        <a href="{{ url_for('loans.loan_detail', loan_id=loan.id) }}" class="btn btn-sm btn-outline-secondary">View</a>
     </li>
     {% endfor %}
 </ul>

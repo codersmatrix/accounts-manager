@@ -57,7 +57,7 @@
 <div class="card mb-4 border-danger">
     <div class="card-header d-flex justify-content-between">
         <span><i class="bi bi-bank"></i> Upcoming EMIs</span>
-        <a href="{{ url_for('loans') }}" class="btn btn-sm btn-outline-danger">Loans</a>
+        <a href="{{ url_for('loans.loans') }}" class="btn btn-sm btn-outline-danger">Loans</a>
     </div>
     <div class="table-responsive">
         <table class="table table-hover mb-0">
@@ -65,10 +65,10 @@
             <tbody>
                 {% for item in upcoming_emis %}
                 <tr>
-                    <td><a href="{{ url_for('loan_detail', loan_id=item.loan.id) }}">{{ item.loan.name }}</a></td>
+                    <td><a href="{{ url_for('loans.loan_detail', loan_id=item.loan.id) }}">{{ item.loan.name }}</a></td>
                     <td>{{ item.due_date.strftime('%d %b %Y') }}</td>
                     <td class="text-end text-danger">₹ {{ "%.2f"|format(item.amount) }}</td>
-                    <td><a href="{{ url_for('loan_detail', loan_id=item.loan.id) }}" class="btn btn-sm btn-success">Pay</a></td>
+                    <td><a href="{{ url_for('loans.loan_detail', loan_id=item.loan.id) }}" class="btn btn-sm btn-success">Pay</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -81,7 +81,7 @@
 <div class="card mb-4 border-info">
     <div class="card-header d-flex justify-content-between">
         <span><i class="bi bi-graph-up-arrow"></i> Upcoming SIPs (autopay)</span>
-        <a href="{{ url_for('investments') }}" class="btn btn-sm btn-outline-info">Investments</a>
+        <a href="{{ url_for('investments.investments') }}" class="btn btn-sm btn-outline-info">Investments</a>
     </div>
     <div class="table-responsive">
         <table class="table table-hover mb-0">
@@ -89,10 +89,10 @@
             <tbody>
                 {% for item in upcoming_sips %}
                 <tr>
-                    <td><a href="{{ url_for('investment_detail', inv_id=item.inv.id) }}">{{ item.inv.name }}</a></td>
+                    <td><a href="{{ url_for('investments.investment_detail', inv_id=item.inv.id) }}">{{ item.inv.name }}</a></td>
                     <td>{{ item.due_date.strftime('%d %b %Y') }}</td>
                     <td class="text-end">₹ {{ "%.2f"|format(item.amount) }}</td>
-                    <td><a href="{{ url_for('investment_detail', inv_id=item.inv.id) }}" class="btn btn-sm btn-success">Record</a></td>
+                    <td><a href="{{ url_for('investments.investment_detail', inv_id=item.inv.id) }}" class="btn btn-sm btn-success">Record</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -106,7 +106,7 @@
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between">
                 <span>Accounts</span>
-                <a href="{{ url_for('add_account') }}" class="btn btn-sm btn-primary">+ New</a>
+                <a href="{{ url_for('accounts.add_account') }}" class="btn btn-sm btn-primary">+ New</a>
             </div>
             <ul class="list-group list-group-flush">
                 {% for acc in accounts %}
@@ -140,7 +140,7 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between">
         <span>Recent Completed Transactions</span>
-        <a href="{{ url_for('transactions') }}" class="btn btn-sm btn-outline-secondary">View all</a>
+        <a href="{{ url_for('transactions.transactions') }}" class="btn btn-sm btn-outline-secondary">View all</a>
     </div>
     <div class="table-responsive">
         <table class="table table-hover mb-0">

@@ -2,20 +2,20 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>All Transactions</h2>
-    <a href="{{ url_for('add_transaction') }}" class="btn btn-primary">+ Add Transaction</a>
+    <a href="{{ url_for('transactions.add_transaction') }}" class="btn btn-primary">+ Add Transaction</a>
 </div>
 
 <div class="mb-3">
     <div class="btn-group" role="group">
-        <a href="{{ url_for('transactions', status='all') }}"
+        <a href="{{ url_for('transactions.transactions', status='all') }}"
            class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
             All
         </a>
-        <a href="{{ url_for('transactions', status='completed') }}"
+        <a href="{{ url_for('transactions.transactions', status='completed') }}"
            class="btn btn-sm {% if status_filter == 'completed' %}btn-primary{% else %}btn-outline-primary{% endif %}">
             Completed
         </a>
-        <a href="{{ url_for('transactions', status='pending') }}"
+        <a href="{{ url_for('transactions.transactions', status='pending') }}"
            class="btn btn-sm {% if status_filter == 'pending' %}btn-warning{% else %}btn-outline-warning{% endif %}">
             Pending
         </a>
@@ -64,13 +64,13 @@
                     </td>
                     <td>
                         {% if tx.status == 'pending' %}
-                        <form method="POST" action="{{ url_for('mark_paid', tx_id=tx.id) }}" class="d-inline">
+                        <form method="POST" action="{{ url_for('transactions.mark_paid', tx_id=tx.id) }}" class="d-inline">
                             <button type="submit" class="btn btn-sm btn-success" title="Mark as Paid">
                                 <i class="bi bi-check-lg"></i>
                             </button>
                         </form>
                         {% endif %}
-                        <form method="POST" action="{{ url_for('delete_transaction', tx_id=tx.id) }}" class="d-inline"
+                        <form method="POST" action="{{ url_for('transactions.delete_transaction', tx_id=tx.id) }}" class="d-inline"
                               onsubmit="return confirm('Delete this transaction?');">
                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
                                 <i class="bi bi-trash"></i>

@@ -28,7 +28,7 @@
                         <i class="bi bi-check-circle-fill"></i> SMTP is configured. You can send reminders.
                     </p>
                     {% if current_user.email %}
-                    <form method="POST" action="{{ url_for('test_email') }}" class="d-inline">
+                    <form method="POST" action="{{ url_for('settings.test_email') }}" class="d-inline">
                         <button type="submit" class="btn btn-outline-primary btn-sm">
                             <i class="bi bi-envelope"></i> Send Test Email
                         </button>
