@@ -3,9 +3,6 @@
 # SQLite (default):
 #   docker compose up --build
 #
-# Postgres:
-#   docker compose --profile postgres up --build
-#
 # Then open http://localhost:8000
 
 services:
@@ -16,7 +13,10 @@ services:
       - "${PORT:-8000}:8000"
     environment:
       FLASK_ENV: production
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-production-use-a-long-random-string}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      FORCE_HTTPS: ${FORCE_HTTPS:-false}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
       PORT: "8000"
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}

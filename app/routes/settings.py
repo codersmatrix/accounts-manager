@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
-from app.extensions import db
+from app.extensions import db, limiter
 from app.services.email import is_mail_configured, send_email
+from app.security import validate_email, clamp_text
 
 settings_bp = Blueprint('settings', __name__)
 
@@ -11,7 +12,12 @@ settings_bp = Blueprint('settings', __name__)
 @login_required
 def settings():
     if request.method == 'POST':
-        current_user.email = request.form.get('email', '').strip() or None
+        email_raw = clamp_text(request.form.get('email'), 120) or None
+        ok, err = validate_email(email_raw)
+        if not ok:
+            flash(err, 'danger')
+            return redirect(url_for('settings.settings'))
+        current_user.email = email_raw
         db.session.commit()
         flash('Settings saved.', 'success')
         return redirect(url_for('settings.settings'))
@@ -20,6 +26,7 @@ def settings():
 
 @settings_bp.route('/settings/test_email', methods=['POST'])
 @login_required
+@limiter.limit('5 per hour')
 def test_email():
     if not current_user.email:
         flash('Please save your email address first.', 'warning')
