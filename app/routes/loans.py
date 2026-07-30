@@ -5,9 +5,28 @@ from flask_login import login_required, current_user
 
 from app.extensions import db
 from app.security import require_owner, clamp_text, safe_float, safe_int
+from app.services.categories import ensure_category
 from app.models import Account, Transaction, Loan
 
 loans_bp = Blueprint('loans', __name__)
+
+def _parse_tenure(form):
+    """Return (tenure_value, tenure_unit) from form data."""
+    raw = form.get('tenure_value', '').strip()
+    if raw in (None, ''):
+        return None, 'months'
+    try:
+        value = int(float(raw))
+    except (TypeError, ValueError):
+        return None, 'months'
+    if value < 0:
+        value = 0
+    if value > 600:  # 50 years max
+        value = 600
+    unit = form.get('tenure_unit', 'months')
+    if unit not in ('months', 'years'):
+        unit = 'months'
+    return value, unit
 
 
 @loans_bp.route('/loans')
@@ -51,6 +70,7 @@ def add_loan():
         if payment_mode not in ('emi', 'one_time'):
             payment_mode = 'emi'
         emi_amount = 0.0 if payment_mode == 'one_time' else float(request.form.get('emi_amount') or 0)
+        tenure_value, tenure_unit = _parse_tenure(request.form)
         loan = Loan(
             name=name,
             lender_type=request.form.get('lender_type', 'bank'),
@@ -60,6 +80,8 @@ def add_loan():
             interest_rate=float(request.form.get('interest_rate') or 0),
             emi_amount=emi_amount,
             emi_day=emi_day,
+            tenure_value=tenure_value,
+            tenure_unit=tenure_unit,
             start_date=start_date,
             notes=request.form.get('notes', '').strip(),
             status='active',
@@ -108,6 +130,9 @@ def edit_loan(loan_id):
             loan.emi_amount = float(request.form.get('emi_amount') or 0)
         loan.interest_rate = float(request.form.get('interest_rate') or 0)
         loan.emi_day = max(1, min(28, int(request.form.get('emi_day') or 1)))
+        tenure_value, tenure_unit = _parse_tenure(request.form)
+        loan.tenure_value = tenure_value
+        loan.tenure_unit = tenure_unit
         loan.notes = request.form.get('notes', '').strip()
         start_str = request.form.get('start_date')
         if start_str:
@@ -178,6 +203,7 @@ def pay_emi(loan_id):
         'credit_card': 'Credit Card',
         'other': 'Loan',
     }.get(loan.lender_type, 'Loan')
+    category = ensure_category(current_user.id, category)
     if pay_status == 'completed':
         account.balance -= amount
         loan.outstanding = max(0.0, loan.outstanding - amount)
@@ -224,6 +250,7 @@ def create_pending_emi(loan_id):
         'credit_card': 'Credit Card',
         'other': 'Loan',
     }.get(loan.lender_type, 'Loan')
+    category = ensure_category(current_user.id, category)
     tx = Transaction(
         description=f'EMI – {loan.name}',
         amount=amount,
