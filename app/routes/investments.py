@@ -5,16 +5,33 @@ from flask_login import login_required, current_user
 
 from app.extensions import db
 from app.security import require_owner, clamp_text, safe_float, safe_int
-from app.models import Account, Transaction, Investment
+from app.services.categories import ensure_category
+from app.models import Account, Transaction, Investment, INV_TYPES
+from app.services.investment_tags import list_tags, ensure_tags
 
 investments_bp = Blueprint('investments', __name__)
+
+VALID_INV_TYPES = {t[0] for t in INV_TYPES}
+
+
+def _valid_inv_type(value, default='mutual_fund'):
+    v = (value or default or 'mutual_fund').strip()
+    return v if v in VALID_INV_TYPES else (default if default in VALID_INV_TYPES else 'mutual_fund')
 
 
 @investments_bp.route('/investments')
 @login_required
 def investments():
+    tag_filter = (request.args.get('tag') or '').strip()
+    type_filter = (request.args.get('type') or '').strip()
     active = Investment.query.filter_by(user_id=current_user.id, status='active').order_by(Investment.name).all()
     stopped = Investment.query.filter_by(user_id=current_user.id, status='stopped').order_by(Investment.name).all()
+    if tag_filter:
+        active = [i for i in active if i.has_tag(tag_filter)]
+        stopped = [i for i in stopped if i.has_tag(tag_filter)]
+    if type_filter:
+        active = [i for i in active if (i.inv_type or '') == type_filter]
+        stopped = [i for i in stopped if (i.inv_type or '') == type_filter]
     total_invested = sum(i.total_invested for i in active) + sum(i.total_invested for i in stopped)
     monthly_sip = sum(i.monthly_sip for i in active if i.monthly_sip)
     return render_template(
@@ -24,6 +41,10 @@ def investments():
         total_invested=total_invested,
         monthly_sip=monthly_sip,
         today=date.today(),
+        all_tags=list_tags(current_user.id),
+        tag_filter=tag_filter,
+        type_filter=type_filter,
+        inv_types=INV_TYPES,
     )
 
 
@@ -46,7 +67,8 @@ def add_investment():
                 pass
         inv = Investment(
             name=name,
-            inv_type=request.form.get('inv_type', 'mutual_fund'),
+            inv_type=_valid_inv_type(request.form.get('inv_type')),
+            tags=ensure_tags(current_user.id, request.form.get('tags', '')),
             monthly_sip=monthly_sip,
             sip_day=sip_day,
             total_invested=float(request.form.get('total_invested') or 0),
@@ -59,7 +81,11 @@ def add_investment():
         db.session.commit()
         flash(f'Investment "{name}" added.', 'success')
         return redirect(url_for('investments.investments'))
-    return render_template('add_investment.html')
+    return render_template(
+        'add_investment.html',
+        all_tags=list_tags(current_user.id),
+        inv_types=INV_TYPES,
+    )
 
 
 @investments_bp.route('/investment/<int:inv_id>')
@@ -85,7 +111,8 @@ def edit_investment(inv_id):
     inv = require_owner(Investment.query.get(inv_id))
     if request.method == 'POST':
         inv.name = request.form.get('name', '').strip() or inv.name
-        inv.inv_type = request.form.get('inv_type', inv.inv_type)
+        inv.inv_type = _valid_inv_type(request.form.get('inv_type'), inv.inv_type)
+        inv.tags = ensure_tags(current_user.id, request.form.get('tags', ''))
         inv.monthly_sip = float(request.form.get('monthly_sip') or 0)
         inv.sip_day = max(1, min(28, int(request.form.get('sip_day') or 1)))
         inv.total_invested = float(request.form.get('total_invested') or inv.total_invested)
@@ -102,7 +129,12 @@ def edit_investment(inv_id):
         db.session.commit()
         flash('Investment updated.', 'success')
         return redirect(url_for('investments.investment_detail', inv_id=inv.id))
-    return render_template('edit_investment.html', inv=inv)
+    return render_template(
+        'edit_investment.html',
+        inv=inv,
+        all_tags=list_tags(current_user.id),
+        inv_types=INV_TYPES,
+    )
 
 
 @investments_bp.route('/investment/<int:inv_id>/delete', methods=['POST'])
@@ -153,7 +185,7 @@ def record_sip(inv_id):
         amount=amount,
         type='expense',
         status=pay_status,
-        category='Investment',
+        category=ensure_category(current_user.id, 'Investment'),
         due_date=due_date,
         account_id=account_id,
         user_id=current_user.id,
@@ -187,7 +219,7 @@ def create_pending_sip(inv_id):
         amount=amount,
         type='expense',
         status='pending',
-        category='Investment',
+        category=ensure_category(current_user.id, 'Investment'),
         due_date=due,
         account_id=account_id,
         user_id=current_user.id,
