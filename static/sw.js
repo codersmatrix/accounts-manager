@@ -33,13 +33,19 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
+   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return;
+  }
+
   // Same-origin API/HTML: network first, fallback to cache
   if (url.origin === self.location.origin) {
     event.respondWith(
       fetch(req)
         .then((res) => {
+          if (res.ok) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+          }
           return res;
         })
         .catch(() =>
@@ -54,8 +60,10 @@ self.addEventListener('fetch', (event) => {
     caches.match(req).then((cached) => {
       if (cached) return cached;
       return fetch(req).then((res) => {
+        if (res.ok) {
         const clone = res.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        }
         return res;
       });
     })
