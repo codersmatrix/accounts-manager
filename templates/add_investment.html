@@ -19,42 +19,42 @@
                             {% endfor %}
                         </select>
                         <div class="form-text" id="startupHelp" style="display:none;">
-                            Startup / business capital is tracked as money you put in — no expected market returns or SIP schedule required.
+                            Startup capital has <strong>no market returns</strong>. Fund as a
+                            <strong>monthly installment</strong> on a fixed day, or enter a one-time total.
+                            Capital invested = opening amount + recorded payments (auto).
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Tag</label>
                         <input type="text" name="tags" class="form-control" list="tagList"
-                               placeholder="Select or type a tag (e.g. long-term, startup-a)"
-                               maxlength="300" autocomplete="off">
+                               placeholder="Select or type a tag" maxlength="300" autocomplete="off">
                         <datalist id="tagList">
                             {% for tag in all_tags %}
                             <option value="{{ tag }}"></option>
                             {% endfor %}
                         </datalist>
-                        <div class="form-text">
-                            Pick from the list or type a new tag — saved for next time. Multiple: separate with commas.
-                        </div>
+                    </div>
+                    <div class="mb-3" id="contribModeBox" style="display:none;">
+                        <label class="form-label">How will you put in capital?</label>
+                        <select class="form-select" id="contribMode">
+                            <option value="monthly">Monthly installment (like EMI / SIP)</option>
+                            <option value="lump">One-time / total capital only</option>
+                        </select>
                     </div>
                     <div class="row" id="sipFields">
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Monthly SIP / Autopay (₹)</label>
-                            <input type="number" step="0.01" name="monthly_sip" class="form-control" value="0">
+                            <label class="form-label" id="sipAmountLabel">Monthly SIP / Autopay (₹)</label>
+                            <input type="number" step="0.01" name="monthly_sip" class="form-control" value="0" id="monthlySip">
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">SIP day (1–28)</label>
-                            <input type="number" name="sip_day" class="form-control" value="5" min="1" max="28">
+                            <label class="form-label" id="sipDayLabel">SIP day (1–28)</label>
+                            <input type="number" name="sip_day" class="form-control" value="5" min="1" max="28" id="sipDay">
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Already invested (₹)</label>
-                            <input type="number" step="0.01" name="total_invested" class="form-control" value="0">
-                            <div class="form-text">Cumulative amount so far</div>
+                            <label class="form-label" id="alreadyLabel">Already invested (₹)</label>
+                            <input type="number" step="0.01" name="total_invested" class="form-control" value="0" id="openingAmount">
+                            <div class="form-text" id="alreadyHelp">Opening capital. Later payments add on top (auto total).</div>
                         </div>
-                    </div>
-                    <div class="mb-3" id="startupAmount" style="display:none;">
-                        <label class="form-label">Capital invested (₹)</label>
-                        <input type="number" step="0.01" name="total_invested_startup" class="form-control" value="0" id="startupInvested">
-                        <div class="form-text">Money put into the startup / business (no return assumption).</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Start date (optional)</label>
@@ -62,7 +62,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes"></textarea>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary">Save Investment</button>
                     <a href="{{ url_for('investments.investments') }}" class="btn btn-secondary">Cancel</a>
@@ -72,21 +72,38 @@
     </div>
 </div>
 <script>
-function toggleInvType() {
-    const t = document.getElementById('invType').value;
-    const isStartup = t === 'startup';
+function syncLabels() {
+    const isStartup = document.getElementById('invType').value === 'startup';
+    const mode = document.getElementById('contribMode').value;
     document.getElementById('startupHelp').style.display = isStartup ? 'block' : 'none';
-    document.getElementById('sipFields').style.display = isStartup ? 'none' : '';
-    document.getElementById('startupAmount').style.display = isStartup ? 'block' : 'none';
-}
-document.getElementById('invType').addEventListener('change', toggleInvType);
-toggleInvType();
-document.querySelector('form').addEventListener('submit', function() {
-    if (document.getElementById('invType').value === 'startup') {
-        const sipTotal = document.querySelector('input[name="total_invested"]');
-        const st = document.getElementById('startupInvested');
-        if (sipTotal && st) sipTotal.value = st.value || '0';
+    document.getElementById('contribModeBox').style.display = isStartup ? 'block' : 'none';
+    if (isStartup) {
+        document.getElementById('sipAmountLabel').textContent = 'Monthly capital installment (\u20b9)';
+        document.getElementById('sipDayLabel').textContent = 'Installment day (1\u201328)';
+        document.getElementById('alreadyLabel').textContent = 'Opening capital already put in (\u20b9)';
+        document.getElementById('alreadyHelp').textContent =
+            'Optional amount already invested. Total capital = this + all recorded payments (auto).';
+        const monthlyRow = document.getElementById('monthlySip').closest('.col-md-4');
+        const dayRow = document.getElementById('sipDay').closest('.col-md-4');
+        if (mode === 'lump') {
+            monthlyRow.style.display = 'none';
+            dayRow.style.display = 'none';
+            document.getElementById('monthlySip').value = '0';
+        } else {
+            monthlyRow.style.display = '';
+            dayRow.style.display = '';
+        }
+    } else {
+        document.getElementById('sipAmountLabel').textContent = 'Monthly SIP / Autopay (\u20b9)';
+        document.getElementById('sipDayLabel').textContent = 'SIP day (1\u201328)';
+        document.getElementById('alreadyLabel').textContent = 'Already invested (\u20b9)';
+        document.getElementById('alreadyHelp').textContent = 'Opening amount; later SIPs add automatically.';
+        document.getElementById('monthlySip').closest('.col-md-4').style.display = '';
+        document.getElementById('sipDay').closest('.col-md-4').style.display = '';
     }
-});
+}
+document.getElementById('invType').addEventListener('change', syncLabels);
+document.getElementById('contribMode').addEventListener('change', syncLabels);
+syncLabels();
 </script>
 {% endblock %}
