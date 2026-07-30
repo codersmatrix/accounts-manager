@@ -45,6 +45,12 @@
             <h4 class="mb-0">₹ {{ "%.2f"|format(loan.principal) }}</h4>
         </div></div>
     </div>
+    <div class="col-md-3 mb-2">
+        <div class="card"><div class="card-body">
+            <div class="text-muted small">Balance tenure</div>
+            <h4 class="mb-0">{{ loan.tenure_display() }}</h4>
+        </div></div>
+    </div>
     {% if (loan.payment_mode or 'emi') == 'emi' %}
     <div class="col-md-3 mb-2">
         <div class="card"><div class="card-body">
