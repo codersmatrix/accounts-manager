@@ -9,19 +9,34 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="mb-3">
                         <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. HDFC Flexi Cap, Parag Parikh Flexi" required>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. HDFC Flexi Cap, My Startup seed" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Type</label>
-                        <select name="inv_type" class="form-select">
-                            <option value="mutual_fund">Mutual Fund (SIP)</option>
-                            <option value="stocks">Stocks</option>
-                            <option value="fd">Fixed Deposit</option>
-                            <option value="ppf">PPF / EPF</option>
-                            <option value="other">Other</option>
+                        <select name="inv_type" class="form-select" id="invType">
+                            {% for value, label in inv_types %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
                         </select>
+                        <div class="form-text" id="startupHelp" style="display:none;">
+                            Startup / business capital is tracked as money you put in — no expected market returns or SIP schedule required.
+                        </div>
                     </div>
-                    <div class="row">
+                    <div class="mb-3">
+                        <label class="form-label">Tag</label>
+                        <input type="text" name="tags" class="form-control" list="tagList"
+                               placeholder="Select or type a tag (e.g. long-term, startup-a)"
+                               maxlength="300" autocomplete="off">
+                        <datalist id="tagList">
+                            {% for tag in all_tags %}
+                            <option value="{{ tag }}"></option>
+                            {% endfor %}
+                        </datalist>
+                        <div class="form-text">
+                            Pick from the list or type a new tag — saved for next time. Multiple: separate with commas.
+                        </div>
+                    </div>
+                    <div class="row" id="sipFields">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Monthly SIP / Autopay (₹)</label>
                             <input type="number" step="0.01" name="monthly_sip" class="form-control" value="0">
@@ -36,13 +51,18 @@
                             <div class="form-text">Cumulative amount so far</div>
                         </div>
                     </div>
+                    <div class="mb-3" id="startupAmount" style="display:none;">
+                        <label class="form-label">Capital invested (₹)</label>
+                        <input type="number" step="0.01" name="total_invested_startup" class="form-control" value="0" id="startupInvested">
+                        <div class="form-text">Money put into the startup / business (no return assumption).</div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Start date (optional)</label>
                         <input type="date" name="start_date" class="form-control">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Groww, folio number…"></textarea>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary">Save Investment</button>
                     <a href="{{ url_for('investments.investments') }}" class="btn btn-secondary">Cancel</a>
@@ -51,4 +71,22 @@
         </div>
     </div>
 </div>
+<script>
+function toggleInvType() {
+    const t = document.getElementById('invType').value;
+    const isStartup = t === 'startup';
+    document.getElementById('startupHelp').style.display = isStartup ? 'block' : 'none';
+    document.getElementById('sipFields').style.display = isStartup ? 'none' : '';
+    document.getElementById('startupAmount').style.display = isStartup ? 'block' : 'none';
+}
+document.getElementById('invType').addEventListener('change', toggleInvType);
+toggleInvType();
+document.querySelector('form').addEventListener('submit', function() {
+    if (document.getElementById('invType').value === 'startup') {
+        const sipTotal = document.querySelector('input[name="total_invested"]');
+        const st = document.getElementById('startupInvested');
+        if (sipTotal && st) sipTotal.value = st.value || '0';
+    }
+});
+</script>
 {% endblock %}

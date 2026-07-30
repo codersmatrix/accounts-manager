@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <h2 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Investments &amp; SIPs</h2>
+    <h2 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Investments</h2>
     <a href="{{ url_for('investments.add_investment') }}" class="btn btn-primary">+ Add Investment</a>
 </div>
 
@@ -9,20 +9,48 @@
     <div class="col-md-4 mb-3">
         <div class="card text-white bg-success h-100">
             <div class="card-body">
-                <h5 class="card-title">Total Invested</h5>
+                <h5 class="card-title">Total invested</h5>
                 <h2>₹ {{ "%.2f"|format(total_invested) }}</h2>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-3">
-        <div class="card text-white bg-info h-100">
+        <div class="card text-white bg-primary h-100">
             <div class="card-body">
-                <h5 class="card-title">Monthly SIPs (autopay)</h5>
+                <h5 class="card-title">Monthly SIPs</h5>
                 <h2>₹ {{ "%.2f"|format(monthly_sip) }}</h2>
             </div>
         </div>
     </div>
 </div>
+
+<form method="GET" class="row g-2 mb-4 align-items-end">
+    <div class="col-md-4">
+        <label class="form-label">Filter by tag</label>
+        <input type="text" name="tag" class="form-control" list="filterTagList"
+               value="{{ tag_filter }}" placeholder="All tags" autocomplete="off">
+        <datalist id="filterTagList">
+            {% for tag in all_tags %}
+            <option value="{{ tag }}"></option>
+            {% endfor %}
+        </datalist>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Filter by type</label>
+        <select name="type" class="form-select">
+            <option value="">All types</option>
+            {% for value, label in inv_types %}
+            <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-4">
+        <button type="submit" class="btn btn-outline-primary">Apply</button>
+        {% if tag_filter or type_filter %}
+        <a href="{{ url_for('investments.investments') }}" class="btn btn-outline-secondary">Clear</a>
+        {% endif %}
+    </div>
+</form>
 
 <h4 class="mb-3">Active</h4>
 {% if active %}
@@ -35,33 +63,50 @@
                     <h5 class="card-title mb-1">
                         <a href="{{ url_for('investments.investment_detail', inv_id=inv.id) }}" class="text-decoration-none">{{ inv.name }}</a>
                     </h5>
-                    <span class="badge bg-success">{{ inv.inv_type.replace('_',' ')|title }}</span>
+                    <span class="badge {% if inv.inv_type == 'startup' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                        {{ inv.type_label() }}
+                    </span>
                 </div>
-                <p class="text-muted small mb-2">
-                    Total invested: <strong class="text-success">₹ {{ "%.2f"|format(inv.total_invested) }}</strong>
+                {% if inv.tag_list() %}
+                <p class="mb-1">
+                    {% for t in inv.tag_list() %}
+                    <a href="{{ url_for('investments.investments', tag=t) }}" class="badge bg-light text-dark border text-decoration-none">{{ t }}</a>
+                    {% endfor %}
                 </p>
-                {% if inv.monthly_sip %}
-                <p class="mb-1">SIP: <strong>₹ {{ "%.2f"|format(inv.monthly_sip) }}</strong>
-                    <span class="text-muted">on day {{ inv.sip_day }} each month</span>
-                </p>
-                <p class="mb-2 small text-muted">Next: {{ inv.next_sip_date(today).strftime('%d %b %Y') }}</p>
                 {% endif %}
-                <a href="{{ url_for('investments.investment_detail', inv_id=inv.id) }}" class="btn btn-sm btn-outline-primary">Manage / Record SIP</a>
+                <p class="text-muted small mb-2">
+                    Invested: <strong>₹ {{ "%.2f"|format(inv.total_invested) }}</strong>
+                </p>
+                {% if inv.inv_type == 'startup' %}
+                <p class="mb-2 small text-muted">Startup / business capital — no market returns tracked.</p>
+                {% elif inv.monthly_sip %}
+                <p class="mb-1">SIP: <strong>₹ {{ "%.2f"|format(inv.monthly_sip) }}</strong>
+                    <span class="text-muted">on day {{ inv.sip_day }}</span>
+                </p>
+                <p class="mb-2 small text-muted">Next SIP: {{ inv.next_sip_date(today).strftime('%d %b %Y') }}</p>
+                {% endif %}
+                <a href="{{ url_for('investments.investment_detail', inv_id=inv.id) }}" class="btn btn-sm btn-outline-primary">Manage</a>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
 {% else %}
-<div class="alert alert-info">No investments yet. Add mutual fund SIPs or other investments.</div>
+<div class="alert alert-info">No active investments{% if tag_filter or type_filter %} matching this filter{% endif %}.</div>
 {% endif %}
 
 {% if stopped %}
 <h4 class="mt-4 mb-3 text-muted">Stopped</h4>
 <ul class="list-group">
     {% for inv in stopped %}
-    <li class="list-group-item d-flex justify-content-between">
-        <span>{{ inv.name }} — invested ₹ {{ "%.2f"|format(inv.total_invested) }}</span>
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>
+            {{ inv.name }}
+            <small class="text-muted">({{ inv.type_label() }})</small>
+            {% for t in inv.tag_list() %}
+            <span class="badge bg-light text-dark border">{{ t }}</span>
+            {% endfor %}
+        </span>
         <a href="{{ url_for('investments.investment_detail', inv_id=inv.id) }}" class="btn btn-sm btn-outline-secondary">View</a>
     </li>
     {% endfor %}
