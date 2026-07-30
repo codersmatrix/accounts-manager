@@ -63,6 +63,23 @@
                         <label class="form-label">Start date (optional)</label>
                         <input type="date" name="start_date" class="form-control">
                     </div>
+                    <div class="row" id="tenureFields">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Balance tenure</label>
+                            <input type="number" name="tenure_value" class="form-control" min="0" max="600"
+                                   step="1" placeholder="e.g. 24">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Unit</label>
+                            <select name="tenure_unit" class="form-select">
+                                <option value="months" selected>Months</option>
+                                <option value="years">Years</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-text mb-3">Remaining tenure left to pay (optional). Use months or years.</div>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
                         <textarea name="notes" class="form-control" rows="2" placeholder="e.g. pay when bonus comes, 24 months tenure…"></textarea>
