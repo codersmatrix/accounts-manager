@@ -61,6 +61,24 @@
                             <option value="paid_off" {% if loan.status == 'paid_off' %}selected{% endif %}>Paid Off</option>
                         </select>
                     </div>
+                    <div class="row" id="tenureFields">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Balance tenure</label>
+                            <input type="number" name="tenure_value" class="form-control" min="0" max="600"
+                                   step="1" placeholder="e.g. 24"
+                                   value="{{ loan.tenure_value if loan.tenure_value is not none else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Unit</label>
+                            <select name="tenure_unit" class="form-select">
+                                <option value="months" {% if (loan.tenure_unit or 'months') == 'months' %}selected{% endif %}>Months</option>
+                                <option value="years" {% if loan.tenure_unit == 'years' %}selected{% endif %}>Years</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-text mb-3">Remaining tenure left to pay (optional).</div>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
                         <textarea name="notes" class="form-control" rows="2">{{ loan.notes }}</textarea>
