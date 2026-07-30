@@ -47,6 +47,9 @@
                 <p class="text-muted small mb-2">
                     Outstanding: <strong class="text-danger">₹ {{ "%.2f"|format(loan.outstanding) }}</strong>
                     / Principal ₹ {{ "%.2f"|format(loan.principal) }}
+                    {% if loan.tenure_value is not none %}
+                    · Tenure left: <strong>{{ loan.tenure_display() }}</strong>
+                    {% endif %}
                 </p>
                 {% if (loan.payment_mode or 'emi') == 'emi' and loan.emi_amount %}
                 <p class="mb-1">EMI: <strong>₹ {{ "%.2f"|format(loan.emi_amount) }}</strong>
