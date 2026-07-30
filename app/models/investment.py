@@ -24,6 +24,7 @@ class Investment(db.Model):
     tags = db.Column(db.String(300), default='')
     monthly_sip = db.Column(db.Float, default=0.0)
     sip_day = db.Column(db.Integer, default=1)
+    opening_amount = db.Column(db.Float, default=0.0)
     total_invested = db.Column(db.Float, default=0.0)
     status = db.Column(db.String(20), default='active')
     notes = db.Column(db.String(300), default='')
@@ -46,6 +47,11 @@ class Investment(db.Model):
             return True
         needle = tag.strip().lower()
         return any(t.lower() == needle for t in self.tag_list())
+
+    def contribution_label(self):
+        if (self.inv_type or '') == 'startup':
+            return 'Monthly capital'
+        return 'Monthly SIP'
 
     def next_sip_date(self, from_date=None):
         if from_date is None:
