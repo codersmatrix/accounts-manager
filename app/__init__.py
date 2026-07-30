@@ -120,7 +120,8 @@ def create_app(config_name=None):
     def server_error(e):
         return render_template('error.html', code=500, message='Something went wrong.'), 500
 
-    os.makedirs(app.instance_path, exist_ok=True)
+    if os.environ.get("VERCEL") != "1":
+        os.makedirs(app.instance_path, exist_ok=True)
 
     # Schema management: prefer Alembic migrations over create_all
     auto_migrate = os.environ.get('AUTO_MIGRATE', 'true').lower() in ('1', 'true', 'yes')
