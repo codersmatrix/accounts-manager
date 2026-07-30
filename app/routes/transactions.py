@@ -6,6 +6,7 @@ from flask_login import login_required, current_user
 from app.extensions import db, limiter
 from app.models import Account, Transaction, Loan, Investment
 from app.security import require_owner, clamp_text, safe_float
+from app.services.categories import list_categories, ensure_category
 from app.services.email import (
     is_mail_configured,
     send_email,
@@ -65,7 +66,10 @@ def add_transaction():
             return redirect(url_for('transactions.add_transaction'))
         tx_type = request.form.get('type')
         description = clamp_text(request.form.get('description'), 200)
-        category = clamp_text(request.form.get('category'), 50) or 'General'
+        category = ensure_category(
+            current_user.id,
+            clamp_text(request.form.get('category'), 50) or 'General',
+        )
         status = request.form.get('status', 'completed')
         due_date_str = request.form.get('due_date')
         due_date = None
@@ -101,7 +105,12 @@ def add_transaction():
             return redirect(url_for('transactions.pending_payments'))
         flash('Transaction added successfully!', 'success')
         return redirect(url_for('transactions.transactions'))
-    return render_template('add_transaction.html', accounts=accounts_list)
+    categories = list_categories(current_user.id)
+    return render_template(
+        'add_transaction.html',
+        accounts=accounts_list,
+        categories=categories,
+    )
 
 
 @transactions_bp.route('/mark_paid/<int:tx_id>', methods=['POST'])
