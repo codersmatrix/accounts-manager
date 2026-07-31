@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="mb-4">Add reminder</h3>
+                <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" name="title" class="form-control" required maxlength="200"
+                               placeholder="e.g. Pay electricity, Review budget">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes (optional)</label>
+                        <textarea name="notes" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cadence</label>
+                        <select name="cadence" class="form-select" id="cadenceSelect">
+                            {% for value, label in cadences %}
+                            <option value="{{ value }}" {% if value == 'once' %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Daily / weekly / monthly stay open and advance when you mark Done.</div>
+                    </div>
+                    <div class="mb-3" id="weeklyDay" style="display:none;">
+                        <label class="form-label">Weekday</label>
+                        <select name="cadence_day" class="form-select" id="weeklySelect">
+                            {% for val, label in weekdays %}
+                            <option value="{{ val }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3" id="monthlyDay" style="display:none;">
+                        <label class="form-label">Day of month (1–28)</label>
+                        <input type="number" name="cadence_day" class="form-control" id="monthlyInput" min="1" max="28" value="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Next due date</label>
+                        <input type="date" name="next_due" class="form-control" required value="{{ today }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <a href="{{ url_for('todos.todos') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function toggleCadence() {
+    const c = document.getElementById('cadenceSelect').value;
+    document.getElementById('weeklyDay').style.display = c === 'weekly' ? 'block' : 'none';
+    document.getElementById('monthlyDay').style.display = c === 'monthly' ? 'block' : 'none';
+    document.getElementById('weeklySelect').disabled = c !== 'weekly';
+    document.getElementById('monthlyInput').disabled = c !== 'monthly';
+}
+document.getElementById('cadenceSelect').addEventListener('change', toggleCadence);
+toggleCadence();
+</script>
+{% endblock %}

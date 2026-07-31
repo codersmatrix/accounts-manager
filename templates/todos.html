@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="mb-0"><i class="bi bi-check2-square"></i> Todos &amp; Reminders</h2>
+    <div class="d-flex gap-2 flex-wrap">
+        <form method="POST" action="{{ url_for('todos.send_todo_reminders') }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-outline-primary" {% if not mail_configured %}disabled title="Configure email first"{% endif %}>
+                <i class="bi bi-envelope"></i> Email due reminders
+            </button>
+        </form>
+        <a href="{{ url_for('todos.add_todo') }}" class="btn btn-primary">+ Add reminder</a>
+    </div>
+</div>
+
+{% if due_today %}
+<div class="alert alert-warning">
+    <strong>{{ due_today|length }}</strong> item(s) due today or overdue.
+</div>
+{% endif %}
+
+<h4 class="mb-3">Open</h4>
+{% if open_items %}
+<div class="list-group mb-4">
+    {% for todo in open_items %}
+    <div class="list-group-item {% if todo.next_due < today %}list-group-item-danger{% elif todo.next_due == today %}list-group-item-warning{% endif %}">
+        <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+            <div class="flex-grow-1">
+                <div class="fw-semibold">{{ todo.title }}</div>
+                <small class="text-muted">
+                    Due {{ todo.next_due.strftime('%d %b %Y') }}
+                    · {{ todo.cadence_label() }}
+                </small>
+                {% if todo.notes %}<div class="small mt-1">{{ todo.notes }}</div>{% endif %}
+            </div>
+            <div class="d-flex gap-1">
+                <form method="POST" action="{{ url_for('todos.complete_todo', todo_id=todo.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-sm btn-success">Done</button>
+                </form>
+                <a href="{{ url_for('todos.edit_todo', todo_id=todo.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                <form method="POST" action="{{ url_for('todos.delete_todo', todo_id=todo.id) }}"
+                      onsubmit="return confirm('Delete this reminder?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">No open reminders. Add one to get started.</div>
+{% endif %}
+
+{% if done_items %}
+<h4 class="mb-3 text-muted">Recently completed (one-time)</h4>
+<ul class="list-group">
+    {% for todo in done_items %}
+    <li class="list-group-item d-flex justify-content-between text-muted">
+        <span><s>{{ todo.title }}</s></span>
+        <form method="POST" action="{{ url_for('todos.delete_todo', todo_id=todo.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Remove</button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}
