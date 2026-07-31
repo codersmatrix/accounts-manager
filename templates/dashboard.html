@@ -101,6 +101,32 @@
 </div>
 {% endif %}
 
+{% if open_todos %}
+<div class="card mb-4 border-primary">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-check2-square"></i> Todos & reminders</span>
+        <a href="{{ url_for('todos.todos') }}" class="btn btn-sm btn-outline-primary">All todos</a>
+    </div>
+    <ul class="list-group list-group-flush">
+        {% for todo in open_todos %}
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap
+            {% if todo.next_due < today %}list-group-item-danger{% elif todo.next_due == today %}list-group-item-warning{% endif %}">
+            <div class="flex-grow-1 min-w-0">
+                <div class="text-truncate fw-semibold">{{ todo.title }}</div>
+                <small class="text-muted">
+                    Due {{ todo.next_due.strftime('%d %b %Y') }} · {{ todo.cadence_label() }}
+                </small>
+            </div>
+            <form method="POST" action="{{ url_for('todos.complete_todo', todo_id=todo.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-sm btn-success">Done</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
 <div class="row mb-4">
     <div class="col-md-6 mb-3">
         <div class="card h-100">
