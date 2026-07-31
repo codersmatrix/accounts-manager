@@ -3,7 +3,7 @@ from datetime import date
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
 
-from app.models import Account, Transaction, Loan, Investment
+from app.models import Account, Transaction, Loan, Investment, Todo
 from app.services.email import get_due_pending
 
 dashboard_bp = Blueprint('dashboard', __name__)
@@ -68,6 +68,13 @@ def dashboard():
             })
     upcoming_sips.sort(key=lambda x: x['due_date'])
 
+    open_todos = (
+        Todo.query.filter_by(user_id=current_user.id, status='open')
+        .order_by(Todo.next_due.asc())
+        .limit(8)
+        .all()
+    )
+
     return render_template(
         'dashboard.html',
         accounts=accounts,
@@ -83,4 +90,6 @@ def dashboard():
         total_invested=total_invested,
         monthly_sip=monthly_sip,
         upcoming_sips=upcoming_sips[:6],
+        open_todos=open_todos,
+        today=today,
     )
