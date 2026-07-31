@@ -123,15 +123,42 @@
     <div class="col-md-6 mb-3">
         {% if pending %}
         <div class="card h-100 border-warning">
-            <div class="card-header bg-warning-subtle">Pending Payments</div>
+            <div class="card-header bg-warning-subtle d-flex justify-content-between align-items-center">
+                <span>Pending Payments</span>
+                <a href="{{ url_for('transactions.pending_payments') }}" class="btn btn-sm btn-outline-warning">View all</a>
+            </div>
             <ul class="list-group list-group-flush">
                 {% for tx in pending[:5] %}
-                <li class="list-group-item d-flex justify-content-between py-2">
-                    <span>{{ tx.description }}{% if tx.due_date %} <small class="text-muted">{{ tx.due_date.strftime('%d %b') }}</small>{% endif %}</span>
-                    <strong class="text-danger">₹ {{ "%.2f"|format(tx.amount) }}</strong>
+                <li class="list-group-item py-2">
+                    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="text-truncate">{{ tx.description }}</div>
+                            <small class="text-muted">
+                                {% if tx.due_date %}Due {{ tx.due_date.strftime('%d %b %Y') }} · {% endif %}
+                                {{ tx.category or 'General' }}
+                            </small>
+                        </div>
+                        <strong class="text-danger text-nowrap">₹ {{ "%.2f"|format(tx.amount) }}</strong>
+                        <form method="POST" action="{{ url_for('transactions.mark_paid', tx_id=tx.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-sm btn-success" title="Mark as paid">Pay</button>
+                        </form>
+                    </div>
                 </li>
                 {% endfor %}
             </ul>
+            {% if pending|length > 5 %}
+            <div class="card-footer text-center py-2">
+                <a href="{{ url_for('transactions.pending_payments') }}">+{{ pending|length - 5 }} more pending</a>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="card h-100 border-success">
+            <div class="card-body text-center text-muted py-4">
+                <div class="mb-1">No pending payments</div>
+                <small>You're all clear</small>
+            </div>
         </div>
         {% endif %}
     </div>
