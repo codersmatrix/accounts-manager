@@ -35,7 +35,6 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
-    # API uses Bearer tokens — no CSRF
     from app.routes.api import api_bp
     csrf.exempt(api_bp)
     app.config.setdefault(
@@ -85,6 +84,21 @@ def create_app(config_name=None):
             response.headers['Pragma'] = 'no-cache'
         return response
 
+    @app.after_request
+    def track_usage(response):
+        try:
+            from flask_login import current_user
+            from app.services.analytics import log_event, should_track_path
+            path = request.path or ''
+            if should_track_path(path) and response.status_code < 500:
+                if path.startswith('/api/'):
+                    log_event('api_call', path=path, method=request.method)
+                elif getattr(current_user, 'is_authenticated', False):
+                    log_event('page_view', path=path, method=request.method)
+        except Exception:
+            pass
+        return response
+
     @app.before_request
     def enforce_https():
         if app.config.get('FORCE_HTTPS') and not app.debug:
@@ -124,7 +138,6 @@ def create_app(config_name=None):
             _apply_migrations(app)
 
     def _bootstrap_admin():
-        """If no admin exists, promote the first user (id ascending)."""
         try:
             from app.models import User as U
             if U.query.filter_by(is_admin=True).count() == 0:
