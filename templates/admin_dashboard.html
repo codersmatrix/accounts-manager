@@ -28,12 +28,12 @@
     <div class="col-6 col-md-3"><div class="card shadow-sm h-100"><div class="card-body">
         <div class="text-muted small">Events ({{ days }}d)</div>
         <div class="fs-3 fw-bold">{{ summary.total_events }}</div>
-        <div class="small">{{ summary.logins }} logins \u00b7 {{ summary.api_calls }} API</div>
+        <div class="small">{{ summary.logins }} logins · {{ summary.api_calls }} API</div>
     </div></div></div>
     <div class="col-6 col-md-3"><div class="card shadow-sm h-100"><div class="card-body">
         <div class="text-muted small">System</div>
         <div class="small">Accounts {{ counts.accounts }}</div>
-        <div class="small">Loans {{ counts.loans }} \u00b7 Inv {{ counts.investments }}</div>
+        <div class="small">Loans {{ counts.loans }} · Inv {{ counts.investments }}</div>
         <div class="small">Todos {{ counts.todos }}</div>
         <div class="small mt-1">{% if mail_configured %}<span class="text-success">SMTP OK</span>{% else %}<span class="text-warning">SMTP off</span>{% endif %}</div>
     </div></div></div>
@@ -65,7 +65,7 @@
         <tr>
             <td class="small text-nowrap">{{ e.created_at.strftime('%d %b %H:%M') if e.created_at else '' }}</td>
             <td><span class="badge bg-secondary">{{ e.event_type }}</span></td>
-            <td>{{ e.user_id or '\u2014' }}</td>
+            <td>{% if e.username %}{{ e.username }}{% elif e.user_id %}#{{ e.user_id }}{% else %}—{% endif %}</td>
             <td><code class="small">{{ e.path or '' }}</code></td>
             <td class="small">{{ e.meta or '' }}</td>
         </tr>

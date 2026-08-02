@@ -109,7 +109,27 @@ def analytics_summary(days: int = 7) -> dict:
     top_paths = sorted(by_path.items(), key=lambda x: -x[1])[:15]
     days_series = sorted(by_day.items())
     max_day = max((n for _, n in days_series), default=0)
-    recent = UsageEvent.query.order_by(UsageEvent.created_at.desc()).limit(40).all()
+
+    recent_rows = (
+        UsageEvent.query.order_by(UsageEvent.created_at.desc()).limit(40).all()
+    )
+    user_ids = {e.user_id for e in recent_rows if e.user_id}
+    names = {}
+    if user_ids:
+        for u in User.query.filter(User.id.in_(user_ids)).all():
+            names[u.id] = u.username
+    recent = []
+    for e in recent_rows:
+        recent.append({
+            'created_at': e.created_at,
+            'event_type': e.event_type,
+            'user_id': e.user_id,
+            'username': names.get(e.user_id) if e.user_id else None,
+            'path': e.path,
+            'meta': e.meta,
+            'method': e.method,
+        })
+
     return {
         'days': days,
         'total_events': len(rows),
