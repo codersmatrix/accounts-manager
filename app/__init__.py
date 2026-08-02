@@ -29,14 +29,15 @@ def create_app(config_name=None):
     app.config['REMEMBER_COOKIE_SECURE'] = cfg.REMEMBER_COOKIE_SECURE
     app.config['WTF_CSRF_SSL_STRICT'] = cfg.WTF_CSRF_SSL_STRICT
 
-    # Trust X-Forwarded-* when behind reverse proxy / load balancer
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-    # Extensions
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    # API uses Bearer tokens — no CSRF
+    from app.routes.api import api_bp
+    csrf.exempt(api_bp)
     app.config.setdefault(
         'RATELIMIT_STORAGE_URI',
         app.config.get('RATELIMIT_STORAGE_URI', 'memory://'),
@@ -53,11 +54,9 @@ def create_app(config_name=None):
             return None
         return db.session.get(User, uid)
 
-    # Blueprints
     from app.routes import register_blueprints
     register_blueprints(app)
 
-    # Security headers on every response
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -66,14 +65,12 @@ def create_app(config_name=None):
         response.headers['Permissions-Policy'] = (
             'geolocation=(), microphone=(), camera=(), payment=()'
         )
-        # CSP: allow self + Bootstrap CDN used by templates
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "font-src 'self' https://cdn.jsdelivr.net data:; "
             "img-src 'self' data:; "
-            #"connect-src 'self'; "
             "connect-src 'self' https://cdn.jsdelivr.net; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "
@@ -83,7 +80,6 @@ def create_app(config_name=None):
             response.headers['Strict-Transport-Security'] = (
                 'max-age=31536000; includeSubDomains'
             )
-        # Do not cache authenticated HTML pages
         if response.content_type and 'text/html' in response.content_type:
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
             response.headers['Pragma'] = 'no-cache'
@@ -92,13 +88,11 @@ def create_app(config_name=None):
     @app.before_request
     def enforce_https():
         if app.config.get('FORCE_HTTPS') and not app.debug:
-            # Honor proxy header set by ProxyFix
             if request.headers.get('X-Forwarded-Proto', 'http') == 'http' and not request.is_secure:
                 url = request.url.replace('http://', 'https://', 1)
                 from flask import redirect
                 return redirect(url, code=301)
 
-    # Safe error pages (no stack traces to clients)
     @app.errorhandler(400)
     def bad_request(e):
         return render_template('error.html', code=400, message='Bad request'), 400
@@ -121,24 +115,34 @@ def create_app(config_name=None):
     def server_error(e):
         return render_template('error.html', code=500, message='Something went wrong.'), 500
 
-    if os.environ.get("VERCEL") != "1":
+    if os.environ.get('VERCEL') != '1':
         os.makedirs(app.instance_path, exist_ok=True)
 
-    # Schema management: prefer Alembic migrations over create_all
     auto_migrate = os.environ.get('AUTO_MIGRATE', 'true').lower() in ('1', 'true', 'yes')
     if auto_migrate:
         with app.app_context():
             _apply_migrations(app)
 
+    def _bootstrap_admin():
+        """If no admin exists, promote the first user (id ascending)."""
+        try:
+            from app.models import User as U
+            if U.query.filter_by(is_admin=True).count() == 0:
+                first = U.query.order_by(U.id.asc()).first()
+                if first:
+                    first.is_admin = True
+                    db.session.commit()
+                    app.logger.info('Promoted user %s to admin (no admin existed).', first.username)
+        except Exception as exc:
+            app.logger.warning('Admin bootstrap skipped: %s', exc)
+
+    with app.app_context():
+        _bootstrap_admin()
+
     return app
 
 
 def _apply_migrations(app):
-    """Apply pending Alembic migrations (upgrade to head).
-
-    Safe to call on every startup. Falls back to create_all only if the
-    migrations package is missing (dev edge case).
-    """
     from flask import current_app
     try:
         from flask_migrate import upgrade
