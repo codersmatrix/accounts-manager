@@ -21,6 +21,72 @@
             </div>
         </div>
 
+        <div class="card shadow mb-4 border-primary">
+            <div class="card-header bg-primary text-white">API Token</div>
+            <div class="card-body">
+                <p class="small text-muted">
+                    Use this token with iOS Shortcuts or other tools.
+                    Send it as <code>Authorization: Bearer &lt;token&gt;</code>
+                    or header <code>X-API-Token: &lt;token&gt;</code>.
+                </p>
+
+                {% if new_api_token %}
+                <div class="alert alert-warning">
+                    <strong>Copy your token now</strong> — it will not be shown again.
+                    <div class="input-group mt-2">
+                        <input type="text" class="form-control font-monospace" id="newToken"
+                               value="{{ new_api_token }}" readonly>
+                        <button type="button" class="btn btn-outline-secondary" id="copyTokenBtn">Copy</button>
+                    </div>
+                </div>
+                <script>
+                document.getElementById('copyTokenBtn').addEventListener('click', function () {
+                    const el = document.getElementById('newToken');
+                    el.select();
+                    navigator.clipboard.writeText(el.value).then(function () {
+                        document.getElementById('copyTokenBtn').textContent = 'Copied';
+                    });
+                });
+                </script>
+                {% elif current_user.has_api_token() %}
+                <p class="mb-2">
+                    <span class="badge bg-success">Active</span>
+                    Token prefix: <code>{{ current_user.api_token_prefix }}…</code>
+                </p>
+                <p class="small text-muted">Full token is not stored in plain text. Generate a new one if you lost it.</p>
+                {% else %}
+                <p class="text-muted mb-3">No API token yet.</p>
+                {% endif %}
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <form method="POST" action="{{ url_for('settings.generate_token') }}"
+                          onsubmit="return confirm('{% if current_user.has_api_token() %}This will replace your existing token. Continue?{% else %}Generate a new API token?{% endif %}');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            {% if current_user.has_api_token() %}Regenerate token{% else %}Generate token{% endif %}
+                        </button>
+                    </form>
+                    {% if current_user.has_api_token() %}
+                    <form method="POST" action="{{ url_for('settings.revoke_token') }}"
+                          onsubmit="return confirm('Revoke API token? Integrations will stop working.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Revoke</button>
+                    </form>
+                    {% endif %}
+                </div>
+
+                <hr>
+                <p class="small mb-1 fw-semibold">Example endpoints</p>
+                <ul class="small text-muted mb-0">
+                    <li><code>GET /api/v1/me</code></li>
+                    <li><code>GET /api/v1/todos</code> · <code>POST /api/v1/todos</code></li>
+                    <li><code>POST /api/v1/todos/&lt;id&gt;/complete</code></li>
+                    <li><code>GET /api/v1/pending</code> · <code>POST /api/v1/pending</code></li>
+                    <li><code>GET /api/v1/accounts</code></li>
+                </ul>
+            </div>
+        </div>
+
         <div class="card shadow mb-4">
             <div class="card-header">Email Configuration Status</div>
             <div class="card-body">
@@ -43,21 +109,9 @@
                         <i class="bi bi-exclamation-triangle-fill"></i> SMTP is not configured yet.
                     </p>
                     <p class="small text-muted mb-0">
-                        To enable email reminders, set these in <code>app.py</code> (or as environment variables):
+                        Set <code>MAIL_SERVER</code>, <code>MAIL_USERNAME</code>, <code>MAIL_PASSWORD</code>
+                        (and related) environment variables to enable email.
                     </p>
-                    <ul class="small text-muted mt-2">
-                        <li><code>MAIL_USERNAME</code> – your SMTP email (e.g. Gmail address)</li>
-                        <li><code>MAIL_PASSWORD</code> – app password (for Gmail: create one at myaccount.google.com/apppasswords)</li>
-                        <li><code>MAIL_DEFAULT_SENDER</code> – usually the same as MAIL_USERNAME</li>
-                        <li><code>MAIL_SERVER</code> – default <code>smtp.gmail.com</code></li>
-                        <li><code>MAIL_PORT</code> – default <code>587</code></li>
-                    </ul>
-                    <p class="small text-muted mt-2 mb-0">
-                        Example (near the top of <code>app.py</code>):
-                    </p>
-                    <pre class="bg-light p-2 small rounded mt-1">app.config['MAIL_USERNAME'] = 'you@gmail.com'
-app.config['MAIL_PASSWORD'] = 'your-16-char-app-password'
-app.config['MAIL_DEFAULT_SENDER'] = 'you@gmail.com'</pre>
                 {% endif %}
             </div>
         </div>
