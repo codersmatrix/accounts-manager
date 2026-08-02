@@ -39,15 +39,6 @@ def resolve_account(
     sender: Optional[str] = None,
     text: Optional[str] = None,
 ) -> Optional[Account]:
-    """Return best matching account or None if list is empty.
-
-    Priority:
-      1. Explicit account_id
-      2. Name contains account last-digits hint
-      3. Name matches bank keyword from sender / SMS body
-      4. Prefer account_type Bank / Savings / Current
-      5. First remaining account
-    """
     if not accounts:
         return None
 
