@@ -82,9 +82,23 @@ def require_owner(obj, user_id_attr='user_id'):
 def registration_enabled(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
-        if not current_app.config.get('ALLOW_REGISTRATION', True):
+        from app.services.server_settings import registration_allowed
+        if not registration_allowed():
             flash('Registration is disabled.', 'warning')
             return redirect(url_for('auth.login'))
+        return f(*args, **kwargs)
+    return wrapped
+
+
+def admin_required(f):
+    """Require logged-in user with is_admin."""
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login'))
+        if not getattr(current_user, 'is_admin', False):
+            flash('Admin access required.', 'danger')
+            return redirect(url_for('dashboard.dashboard'))
         return f(*args, **kwargs)
     return wrapped
 
