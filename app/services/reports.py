@@ -15,6 +15,7 @@ def month_bounds(year: int, month: int):
 
 
 def category_spend(user_id: int, year: int, month: int) -> dict:
+    """Completed expense totals by category for the calendar month."""
     start, end = month_bounds(year, month)
     rows = (
         Transaction.query.filter_by(user_id=user_id, type='expense', status='completed')
@@ -51,6 +52,7 @@ def category_income(user_id: int, year: int, month: int) -> dict:
 
 
 def budget_progress(user_id: int, year: int, month: int) -> list:
+    """Merge budgets with actual spend for the month."""
     spend = category_spend(user_id, year, month)['by_category']
     budgets = (
         Budget.query.filter_by(user_id=user_id, year=year, month=month)
