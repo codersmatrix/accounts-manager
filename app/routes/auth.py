@@ -1,4 +1,6 @@
-from datetime import datetime
+import hashlib
+import secrets
+from datetime import datetime, timedelta
 
 from flask import (
     Blueprint, render_template, redirect, url_for, flash, request, current_app, session,
@@ -10,6 +12,7 @@ from app.extensions import db, limiter
 from app.models import User
 from app.services.analytics import log_event
 from app.services.mfa import verify_code
+from app.services.email import send_email, is_mail_configured
 from app.security import (
     validate_username,
     validate_email,
@@ -132,3 +135,96 @@ def logout():
     session.pop('mfa_user_id', None)
     flash('You have been logged out.', 'info')
     return redirect(url_for('auth.login'))
+
+
+def _hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+@limiter.limit('5 per minute;15 per hour')
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard.dashboard'))
+    if request.method == 'POST':
+        identifier = clamp_text(request.form.get('identifier'), 120)
+        generic = (
+            'If an account with that username or email exists and has an email on file, '
+            'a reset link has been sent.'
+        )
+        if not identifier:
+            flash('Enter your username or email.', 'warning')
+            return redirect(url_for('auth.forgot_password'))
+
+        user = User.query.filter_by(username=identifier).first()
+        if not user and '@' in identifier:
+            user = User.query.filter(User.email.ilike(identifier)).first()
+
+        if user and user.email and is_mail_configured():
+            token = secrets.token_urlsafe(32)
+            user.reset_token_hash = _hash_reset_token(token)
+            user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
+            db.session.commit()
+            reset_url = url_for('auth.reset_password', token=token, _external=True)
+            html = (
+                f'<html><body style="font-family:Arial,sans-serif;">'
+                f'<h2>Password reset</h2>'
+                f'<p>Hi {user.username},</p>'
+                f'<p>We received a request to reset your password. '
+                f'This link expires in <strong>1 hour</strong>.</p>'
+                f'<p><a href="{reset_url}">Reset your password</a></p>'
+                f'<p>If you did not request this, you can ignore this email.</p>'
+                f'<p style="color:#666;font-size:12px;">Or paste: {reset_url}</p>'
+                f'</body></html>'
+            )
+            text = f'Reset your password (expires in 1 hour): {reset_url}'
+            ok, err = send_email(user.email, 'Accounts Manager \u2013 Password reset', html, text)
+            if not ok:
+                user.reset_token_hash = None
+                user.reset_token_expires = None
+                db.session.commit()
+                flash(f'Could not send email: {err}', 'danger')
+                return redirect(url_for('auth.forgot_password'))
+        elif not is_mail_configured():
+            flash('Password reset is unavailable: email is not configured on the server.', 'warning')
+            return redirect(url_for('auth.forgot_password'))
+
+        flash(generic, 'info')
+        return redirect(url_for('auth.login'))
+
+    return render_template('forgot_password.html', mail_ok=is_mail_configured())
+
+
+@auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+@limiter.limit('10 per minute;30 per hour')
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard.dashboard'))
+    if not token or len(token) > 200:
+        flash('Invalid or expired reset link.', 'danger')
+        return redirect(url_for('auth.forgot_password'))
+
+    th = _hash_reset_token(token)
+    user = User.query.filter_by(reset_token_hash=th).first()
+    if not user or not user.reset_token_expires or user.reset_token_expires < datetime.utcnow():
+        flash('Invalid or expired reset link. Please request a new one.', 'danger')
+        return redirect(url_for('auth.forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form.get('password') or ''
+        confirm = request.form.get('confirm') or ''
+        ok, err = validate_password(password)
+        if not ok:
+            flash(err, 'danger')
+            return redirect(url_for('auth.reset_password', token=token))
+        if password != confirm:
+            flash('Passwords do not match.', 'danger')
+            return redirect(url_for('auth.reset_password', token=token))
+        user.password_hash = generate_password_hash(password, method='scrypt')
+        user.reset_token_hash = None
+        user.reset_token_expires = None
+        db.session.commit()
+        flash('Password updated. You can log in now.', 'success')
+        return redirect(url_for('auth.login'))
+
+    return render_template('reset_password.html')
