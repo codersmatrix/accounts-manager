@@ -24,15 +24,15 @@
 <div class="row g-3 mb-4">
     <div class="col-md-4"><div class="card shadow-sm border-success"><div class="card-body">
         <div class="text-muted small">Income ({{ income_count }} txns)</div>
-        <div class="fs-4 fw-bold text-success">\u20b9 {{ '%.2f'|format(income_total) }}</div>
+        <div class="fs-4 fw-bold text-success">₹ {{ '%.2f'|format(income_total) }}</div>
     </div></div></div>
     <div class="col-md-4"><div class="card shadow-sm border-danger"><div class="card-body">
         <div class="text-muted small">Expenses ({{ expense_count }} txns)</div>
-        <div class="fs-4 fw-bold text-danger">\u20b9 {{ '%.2f'|format(expense_total) }}</div>
+        <div class="fs-4 fw-bold text-danger">₹ {{ '%.2f'|format(expense_total) }}</div>
     </div></div></div>
     <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
         <div class="text-muted small">Net</div>
-        <div class="fs-4 fw-bold {% if net >= 0 %}text-success{% else %}text-danger{% endif %}">\u20b9 {{ '%.2f'|format(net) }}</div>
+        <div class="fs-4 fw-bold {% if net >= 0 %}text-success{% else %}text-danger{% endif %}">₹ {{ '%.2f'|format(net) }}</div>
     </div></div></div>
 </div>
 <div class="row g-3">
@@ -42,7 +42,7 @@
             <div class="card-body">
                 {% for cat, amt in exp_items %}
                 <div class="mb-3">
-                    <div class="d-flex justify-content-between small"><span>{{ cat }}</span><span class="fw-semibold">\u20b9 {{ '%.2f'|format(amt) }}</span></div>
+                    <div class="d-flex justify-content-between small"><span>{{ cat }}</span><span class="fw-semibold">₹ {{ '%.2f'|format(amt) }}</span></div>
                     <div class="progress" style="height:10px;"><div class="progress-bar bg-danger" style="width: {{ (amt / max_exp * 100)|round(1) }}%;"></div></div>
                 </div>
                 {% else %}<p class="text-muted mb-0">No completed expenses this month.</p>{% endfor %}
@@ -54,7 +54,7 @@
             <div class="card-header">Income by category</div>
             <ul class="list-group list-group-flush">
                 {% for cat, amt in inc_items %}
-                <li class="list-group-item d-flex justify-content-between"><span>{{ cat }}</span><strong class="text-success">\u20b9 {{ '%.2f'|format(amt) }}</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>{{ cat }}</span><strong class="text-success">₹ {{ '%.2f'|format(amt) }}</strong></li>
                 {% else %}<li class="list-group-item text-muted">No completed income this month.</li>{% endfor %}
             </ul>
         </div>
@@ -65,7 +65,7 @@
                 <li class="list-group-item">
                     <div class="d-flex justify-content-between small">
                         <span>{{ r.category }}{% if r.over %} <span class="badge bg-danger">over</span>{% endif %}</span>
-                        <span>\u20b9 {{ '%.0f'|format(r.spent) }} / {{ '%.0f'|format(r.budget) }}</span>
+                        <span>₹ {{ '%.0f'|format(r.spent) }} / {{ '%.0f'|format(r.budget) }}</span>
                     </div>
                     <div class="progress mt-1" style="height:6px;"><div class="progress-bar {% if r.over %}bg-danger{% elif r.pct > 80 %}bg-warning{% else %}bg-success{% endif %}" style="width: {{ 100 if r.pct > 100 else r.pct }}%;"></div></div>
                 </li>
