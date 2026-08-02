@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Accounts Manager</title>
-
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0d6efd">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -15,7 +14,6 @@
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/static/icons/icon-512.png">
-
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}">
     <style>
@@ -43,7 +41,7 @@
                     <a class="nav-link" href="{{ url_for('transactions.pending_payments') }}">Pending</a>
                     <a class="nav-link" href="{{ url_for('todos.todos') }}">Todos</a>
                     {% if current_user.is_admin %}
-                    <a class="nav-link" href="{{ url_for('admin.server_settings') }}" title="Server settings">
+                    <a class="nav-link" href="{{ url_for('admin.dashboard') }}" title="Admin">
                         <i class="bi bi-shield-lock"></i> Admin
                     </a>
                     {% endif %}

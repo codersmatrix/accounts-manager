@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-3"><i class="bi bi-people"></i> Users</h2>
+<div class="mb-3 d-flex flex-wrap gap-2">
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-sm btn-outline-dark">Overview</a>
+    <a href="{{ url_for('admin.analytics') }}" class="btn btn-sm btn-outline-dark">Analytics</a>
+    <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-dark">Users</a>
+    <a href="{{ url_for('admin.server_settings') }}" class="btn btn-sm btn-outline-dark">Server settings</a>
+</div>
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-striped mb-0 align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th><th>Username</th><th>Email</th><th>Admin</th><th>Active</th><th>Last login</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for u in users %}
+                <tr>
+                    <td>{{ u.id }}</td>
+                    <td>{{ u.username }}{% if u.id == current_user.id %} <span class="badge bg-info">you</span>{% endif %}</td>
+                    <td class="small">{{ u.email or '—' }}</td>
+                    <td>{% if u.is_admin %}<span class="badge bg-dark">admin</span>{% else %}—{% endif %}</td>
+                    <td>{% if u.is_active %}<span class="text-success">yes</span>{% else %}<span class="text-danger">no</span>{% endif %}</td>
+                    <td class="small">{{ u.last_login_at.strftime('%d %b %Y %H:%M') if u.last_login_at else '—' }}</td>
+                    <td class="text-nowrap">
+                        <form method="POST" action="{{ url_for('admin.toggle_admin', user_id=u.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-sm btn-outline-dark" {% if u.id == current_user.id %}disabled{% endif %}>
+                                {% if u.is_admin %}Revoke admin{% else %}Make admin{% endif %}
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin.toggle_active', user_id=u.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-sm btn-outline-danger" {% if u.id == current_user.id %}disabled{% endif %}>
+                                {% if u.is_active %}Disable{% else %}Enable{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" class="text-muted">No users</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
