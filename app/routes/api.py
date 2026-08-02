@@ -8,6 +8,7 @@ from app.security import api_token_required, clamp_text, safe_float, safe_int
 from app.models import Todo, Transaction, Account, CADENCE_CHOICES
 from app.services.sms_parse import parse_sms
 from app.services.categories import ensure_category
+from app.services.account_resolve import resolve_account
 
 api_bp = Blueprint('api', __name__, url_prefix='/api/v1')
 
@@ -198,17 +199,7 @@ def list_accounts():
 @api_token_required
 @limiter.limit('60 per minute')
 def sms_transaction():
-    """Ingest an SMS (from iOS Shortcuts) and create a completed transaction.
-
-    Accepts JSON or form fields:
-      - text / body / message  (required) — full SMS body
-      - sender                (optional) — SMS sender id
-      - account_id            (optional) — override account
-      - status                (optional) — completed (default) | pending
-      - dry_run               (optional) — if true, only return parse result
-
-    Updates account balance when status is completed.
-    """
+    """Ingest an SMS (from iOS Shortcuts) and create a completed transaction."""
     data = request.get_json(silent=True) or {}
     if not data:
         data = request.form.to_dict() if request.form else {}
@@ -239,22 +230,21 @@ def sms_transaction():
     if not accounts:
         return jsonify({'error': 'no_account', 'message': 'Create a bank/cash account first'}), 400
 
-    account = None
-    account_id = data.get('account_id')
-    if account_id is not None and str(account_id).strip() != '':
-        account = Account.query.filter_by(
-            id=safe_int(account_id), user_id=g.api_user.id
-        ).first()
-        if not account:
+    explicit_id = None
+    if data.get('account_id') is not None and str(data.get('account_id')).strip() != '':
+        explicit_id = safe_int(data.get('account_id'))
+        if not Account.query.filter_by(id=explicit_id, user_id=g.api_user.id).first():
             return jsonify({'error': 'validation', 'message': 'invalid account_id'}), 400
-    elif parsed.account_hint:
-        hint = parsed.account_hint
-        for a in accounts:
-            if hint in (a.name or ''):
-                account = a
-                break
+
+    account = resolve_account(
+        accounts,
+        account_id=explicit_id,
+        account_hint=parsed.account_hint,
+        sender=sender,
+        text=text,
+    )
     if account is None:
-        account = accounts[0]
+        return jsonify({'error': 'no_account', 'message': 'No account available'}), 400
 
     status = (data.get('status') or 'completed').strip().lower()
     if status not in ('completed', 'pending'):
