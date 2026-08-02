@@ -1,4 +1,4 @@
-"""Category spend reports and budget progress."""
+"""Category spend reports, budget progress, and chart series."""
 from __future__ import annotations
 
 from calendar import monthrange
@@ -14,8 +14,19 @@ def month_bounds(year: int, month: int):
     return start, end
 
 
+def _shift_month(year: int, month: int, delta: int):
+    m = month + delta
+    y = year
+    while m < 1:
+        m += 12
+        y -= 1
+    while m > 12:
+        m -= 12
+        y += 1
+    return y, m
+
+
 def category_spend(user_id: int, year: int, month: int) -> dict:
-    """Completed expense totals by category for the calendar month."""
     start, end = month_bounds(year, month)
     rows = (
         Transaction.query.filter_by(user_id=user_id, type='expense', status='completed')
@@ -52,7 +63,6 @@ def category_income(user_id: int, year: int, month: int) -> dict:
 
 
 def budget_progress(user_id: int, year: int, month: int) -> list:
-    """Merge budgets with actual spend for the month."""
     spend = category_spend(user_id, year, month)['by_category']
     budgets = (
         Budget.query.filter_by(user_id=user_id, year=year, month=month)
@@ -91,3 +101,20 @@ def budget_progress(user_id: int, year: int, month: int) -> list:
             'no_budget': True,
         })
     return rows
+
+
+def monthly_trend(user_id: int, year: int, month: int, months_back: int = 6) -> list:
+    series = []
+    for i in range(months_back - 1, -1, -1):
+        y, m = _shift_month(year, month, -i)
+        inc = category_income(user_id, y, m)['total']
+        exp = category_spend(user_id, y, m)['total']
+        series.append({
+            'year': y,
+            'month': m,
+            'label': f'{m:02d}/{y}',
+            'income': round(inc, 2),
+            'expense': round(exp, 2),
+            'net': round(inc - exp, 2),
+        })
+    return series

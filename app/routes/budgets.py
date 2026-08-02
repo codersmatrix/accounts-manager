@@ -8,7 +8,7 @@ from app.extensions import db
 from app.models import Budget
 from app.security import clamp_text, safe_float, safe_int, require_owner
 from app.services.categories import list_categories, ensure_category
-from app.services.reports import category_spend, category_income, budget_progress
+from app.services.reports import category_spend, category_income, budget_progress, monthly_trend
 
 budgets_bp = Blueprint('budgets', __name__)
 
@@ -90,6 +90,7 @@ def reports():
     exp_items = sorted(exp['by_category'].items(), key=lambda x: -x[1])
     inc_items = sorted(inc['by_category'].items(), key=lambda x: -x[1])
     max_exp = max((v for _, v in exp_items), default=1) or 1
+    trend = monthly_trend(current_user.id, year, month, months_back=6)
     return render_template(
         'reports.html',
         year=year,
@@ -104,4 +105,13 @@ def reports():
         expense_count=exp['count'],
         income_count=inc['count'],
         months=list(range(1, 13)),
+        trend=trend,
+        chart_exp_labels=[c for c, _ in exp_items[:12]],
+        chart_exp_values=[round(v, 2) for _, v in exp_items[:12]],
+        chart_inc_labels=[c for c, _ in inc_items[:12]],
+        chart_inc_values=[round(v, 2) for _, v in inc_items[:12]],
+        chart_trend_labels=[t['label'] for t in trend],
+        chart_trend_income=[t['income'] for t in trend],
+        chart_trend_expense=[t['expense'] for t in trend],
+        chart_trend_net=[t['net'] for t in trend],
     )
