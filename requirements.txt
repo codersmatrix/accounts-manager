@@ -19,10 +19,10 @@ MarkupSafe==3.0.3
 ordered-set==4.1.0
 packaging==26.2
 psycopg2-binary==2.9.9
-pyotp==2.9.0
-qrcode==8.0
 SQLAlchemy==2.0.51
 typing_extensions==4.16.0
 Werkzeug==3.0.3
 wrapt==2.3.0
 WTForms==3.2.2
+pyotp==2.9.0
+qrcode==8.0

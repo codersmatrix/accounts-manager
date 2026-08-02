@@ -35,12 +35,7 @@ def verify_code(secret: str | None, code: str | None) -> bool:
 
 def qr_svg_markup(data: str, box_size: int = 6) -> str:
     """Generate an SVG QR code as an HTML-safe string (no external service)."""
-    qr = qrcode.QRCode(
-        version=None,
-        error_correction=qrcode.constants.ERROR_CORRECT_M,
-        box_size=box_size,
-        border=2,
-    )
+    qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=box_size, border=2)
     qr.add_data(data)
     qr.make(fit=True)
     img = qr.make_image(image_factory=SvgPathImage)
