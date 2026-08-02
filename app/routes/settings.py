@@ -1,10 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_required, current_user
-from urllib.parse import quote
 
 from app.extensions import db, limiter
 from app.services.email import is_mail_configured, send_email
-from app.services.mfa import generate_secret, provisioning_uri, verify_code
+from app.services.mfa import generate_secret, provisioning_uri, verify_code, qr_svg_markup
 from app.security import validate_email, clamp_text, generate_api_token, hash_api_token
 
 settings_bp = Blueprint('settings', __name__)
@@ -58,11 +57,10 @@ def mfa_setup():
         flash('Invalid code. Scan the QR again and enter a fresh 6-digit code.', 'danger')
 
     uri = provisioning_uri(secret, current_user.username)
-    qr_url = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + quote(uri, safe='')
     return render_template(
         'mfa_setup.html',
         secret=secret,
-        qr_url=qr_url,
+        qr_svg=qr_svg_markup(uri),
         uri=uri,
     )
 
