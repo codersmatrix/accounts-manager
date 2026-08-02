@@ -7,6 +7,7 @@ from app.extensions import db, limiter
 from app.models import Account, Transaction, Loan, Investment
 from app.security import require_owner, clamp_text, safe_float
 from app.services.categories import list_categories, ensure_category
+from app.services.investment_capital import refresh_total_invested
 from app.services.email import (
     is_mail_configured,
     send_email,
@@ -15,6 +16,41 @@ from app.services.email import (
 )
 
 transactions_bp = Blueprint('transactions', __name__)
+
+
+def _reverse_completed_effects(tx, user_id):
+    if tx.status != 'completed':
+        return
+    account = Account.query.get(tx.account_id)
+    if account:
+        if tx.type == 'income':
+            account.balance -= tx.amount
+        else:
+            account.balance += tx.amount
+    if tx.loan_id:
+        loan = Loan.query.get(tx.loan_id)
+        if loan and loan.user_id == user_id and tx.type == 'expense':
+            loan.outstanding = (loan.outstanding or 0) + tx.amount
+            if loan.status == 'paid_off' and loan.outstanding > 0:
+                loan.status = 'active'
+
+
+def _apply_completed_effects(tx, user_id):
+    if tx.status != 'completed':
+        return
+    account = Account.query.get(tx.account_id)
+    if account:
+        if tx.type == 'income':
+            account.balance += tx.amount
+        else:
+            account.balance -= tx.amount
+    if tx.loan_id:
+        loan = Loan.query.get(tx.loan_id)
+        if loan and loan.user_id == user_id and tx.type == 'expense':
+            loan.outstanding = max(0.0, (loan.outstanding or 0) - tx.amount)
+            if loan.outstanding <= 0:
+                loan.outstanding = 0
+                loan.status = 'paid_off'
 
 
 @transactions_bp.route('/transactions')
@@ -113,6 +149,76 @@ def add_transaction():
     )
 
 
+@transactions_bp.route('/edit_transaction/<int:tx_id>', methods=['GET', 'POST'])
+@login_required
+def edit_transaction(tx_id):
+    tx = require_owner(Transaction.query.get(tx_id))
+    accounts_list = Account.query.filter_by(user_id=current_user.id).all()
+    if request.method == 'POST':
+        old_inv_id = tx.investment_id
+        _reverse_completed_effects(tx, current_user.id)
+
+        account_id = int(request.form.get('account_id') or tx.account_id)
+        amount = safe_float(request.form.get('amount'), tx.amount, min_v=0.01, max_v=1e12)
+        if amount <= 0:
+            flash('Amount must be positive.', 'danger')
+            db.session.rollback()
+            return redirect(url_for('transactions.edit_transaction', tx_id=tx.id))
+
+        tx_type = request.form.get('type') or tx.type
+        if tx_type not in ('income', 'expense'):
+            tx_type = tx.type
+        description = clamp_text(request.form.get('description'), 200) or tx.description
+        category = ensure_category(
+            current_user.id,
+            clamp_text(request.form.get('category'), 50) or tx.category or 'General',
+        )
+        status = request.form.get('status') or tx.status
+        if status not in ('pending', 'completed'):
+            status = tx.status
+        due_date_str = request.form.get('due_date')
+        due_date = None
+        if due_date_str:
+            try:
+                due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                due_date = tx.due_date
+        elif status == 'pending':
+            due_date = tx.due_date
+
+        require_owner(Account.query.get(account_id))
+
+        tx.description = description
+        tx.amount = amount
+        tx.type = tx_type
+        tx.status = status
+        tx.category = category
+        tx.due_date = due_date
+        tx.account_id = account_id
+
+        _apply_completed_effects(tx, current_user.id)
+
+        inv_ids = {i for i in (old_inv_id, tx.investment_id) if i}
+        for iid in inv_ids:
+            inv = Investment.query.get(iid)
+            if inv and inv.user_id == current_user.id:
+                refresh_total_invested(inv)
+
+        db.session.commit()
+        flash('Transaction updated.', 'success')
+        if status == 'pending':
+            return redirect(url_for('transactions.pending_payments'))
+        return redirect(url_for('transactions.transactions'))
+
+    categories = list_categories(current_user.id)
+    return render_template(
+        'edit_transaction.html',
+        tx=tx,
+        accounts=accounts_list,
+        categories=categories,
+    )
+
+
 @transactions_bp.route('/mark_paid/<int:tx_id>', methods=['POST'])
 @login_required
 def mark_paid(tx_id):
@@ -135,13 +241,14 @@ def mark_paid(tx_id):
                 loan.outstanding = 0
                 loan.status = 'paid_off'
 
+    tx.status = 'completed'
+    tx.date = datetime.utcnow()
+
     if tx.investment_id:
         inv = Investment.query.get(tx.investment_id)
         if inv and inv.user_id == current_user.id:
-            inv.total_invested = (inv.total_invested or 0) + tx.amount
+            refresh_total_invested(inv)
 
-    tx.status = 'completed'
-    tx.date = datetime.utcnow()
     db.session.commit()
     flash(f'"{tx.description}" marked as paid.', 'success')
     return redirect(url_for('transactions.pending_payments'))
@@ -151,6 +258,9 @@ def mark_paid(tx_id):
 @login_required
 def delete_transaction(tx_id):
     tx = require_owner(Transaction.query.get(tx_id))
+    inv_refresh = None
+    if tx.investment_id:
+        inv_refresh = Investment.query.get(tx.investment_id)
 
     if tx.status == 'completed':
         account = Account.query.get(tx.account_id)
@@ -164,12 +274,11 @@ def delete_transaction(tx_id):
                 loan.outstanding += tx.amount
                 if loan.status == 'paid_off' and loan.outstanding > 0:
                     loan.status = 'active'
-        if tx.investment_id:
-            inv = Investment.query.get(tx.investment_id)
-            if inv and inv.user_id == current_user.id:
-                inv.total_invested = max(0.0, (inv.total_invested or 0) - tx.amount)
 
     db.session.delete(tx)
+    db.session.flush()
+    if inv_refresh and inv_refresh.user_id == current_user.id:
+        refresh_total_invested(inv_refresh)
     db.session.commit()
     flash('Transaction deleted.', 'success')
     return redirect(request.referrer or url_for('transactions.transactions'))
