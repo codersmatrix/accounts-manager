@@ -39,6 +39,8 @@
                     <a class="nav-link" href="{{ url_for('investments.investments') }}">Investments</a>
                     <a class="nav-link" href="{{ url_for('transactions.transactions') }}">Txns</a>
                     <a class="nav-link" href="{{ url_for('transactions.pending_payments') }}">Pending</a>
+                    <a class="nav-link" href="{{ url_for('budgets.budgets') }}">Budgets</a>
+                    <a class="nav-link" href="{{ url_for('budgets.reports') }}">Reports</a>
                     <a class="nav-link" href="{{ url_for('todos.todos') }}">Todos</a>
                     {% if current_user.is_admin %}
                     <a class="nav-link" href="{{ url_for('admin.dashboard') }}" title="Admin">
