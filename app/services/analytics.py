@@ -30,6 +30,7 @@ def _client_ip() -> str | None:
 
 def log_event(event_type: str, *, path: str | None = None, method: str | None = None,
               meta: str | None = None, user_id: int | None = None) -> None:
+    """Best-effort event log — never breaks the main request."""
     try:
         uid = user_id
         if uid is None and has_request_context():
@@ -108,7 +109,6 @@ def analytics_summary(days: int = 7) -> dict:
 
     top_paths = sorted(by_path.items(), key=lambda x: -x[1])[:15]
     days_series = sorted(by_day.items())
-    max_day = max((n for _, n in days_series), default=0)
 
     recent_rows = (
         UsageEvent.query.order_by(UsageEvent.created_at.desc()).limit(40).all()
@@ -129,7 +129,7 @@ def analytics_summary(days: int = 7) -> dict:
             'meta': e.meta,
             'method': e.method,
         })
-
+    max_day = max((n for _, n in days_series), default=0)
     return {
         'days': days,
         'total_events': len(rows),
