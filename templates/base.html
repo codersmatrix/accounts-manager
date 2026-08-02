@@ -20,7 +20,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}">
     <style>
-      /* Safe area for notched phones when installed as PWA */
       body { padding-bottom: env(safe-area-inset-bottom); }
       .navbar { padding-top: env(safe-area-inset-top); }
     </style>
@@ -44,6 +43,11 @@
                     <a class="nav-link" href="{{ url_for('transactions.transactions') }}">Txns</a>
                     <a class="nav-link" href="{{ url_for('transactions.pending_payments') }}">Pending</a>
                     <a class="nav-link" href="{{ url_for('todos.todos') }}">Todos</a>
+                    {% if current_user.is_admin %}
+                    <a class="nav-link" href="{{ url_for('admin.server_settings') }}" title="Server settings">
+                        <i class="bi bi-shield-lock"></i> Admin
+                    </a>
+                    {% endif %}
                     <a class="nav-link" href="{{ url_for('settings.settings') }}"><i class="bi bi-gear"></i></a>
                     <a class="nav-link" href="{{ url_for('auth.logout') }}">{{ current_user.username }}</a>
                 </div>
