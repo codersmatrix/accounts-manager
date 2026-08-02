@@ -69,7 +69,7 @@ def create_app(config_name=None):
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "font-src 'self' https://cdn.jsdelivr.net data:; "
-            "img-src 'self' data:; "
+            "img-src 'self' data: https://api.qrserver.com; "
             "connect-src 'self' https://cdn.jsdelivr.net; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "
