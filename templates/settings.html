@@ -5,8 +5,8 @@
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <h2 class="mb-0"><i class="bi bi-gear"></i> Settings</h2>
             {% if current_user.is_admin %}
-            <a href="{{ url_for('admin.server_settings') }}" class="btn btn-outline-dark btn-sm">
-                <i class="bi bi-shield-lock"></i> Server settings (admin)
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-dark btn-sm">
+                <i class="bi bi-shield-lock"></i> Admin
             </a>
             {% endif %}
         </div>
@@ -25,6 +25,32 @@
                     </div>
                     <button type="submit" class="btn btn-primary">Save</button>
                 </form>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4 border-secondary">
+            <div class="card-header">Two-factor authentication (MFA)</div>
+            <div class="card-body">
+                {% if mfa_enabled %}
+                <p class="text-success mb-3"><i class="bi bi-shield-check"></i> MFA is <strong>enabled</strong>. Login requires an authenticator code.</p>
+                <form method="POST" action="{{ url_for('settings.mfa_disable') }}" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="col-auto">
+                        <label class="form-label small mb-0">Code to disable</label>
+                        <input type="text" name="code" class="form-control form-control-sm" inputmode="numeric"
+                               pattern="[0-9]{6}" maxlength="6" required placeholder="000000">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                                onclick="return confirm('Disable two-factor authentication?');">Disable MFA</button>
+                    </div>
+                </form>
+                {% else %}
+                <p class="text-muted small">Protect your account with an authenticator app (TOTP).</p>
+                <a href="{{ url_for('settings.mfa_setup') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-shield-plus"></i> Enable MFA
+                </a>
+                {% endif %}
             </div>
         </div>
 
@@ -86,25 +112,9 @@
                 <p class="small mb-1 fw-semibold">Example endpoints</p>
                 <ul class="small text-muted mb-3">
                     <li><code>GET /api/v1/me</code></li>
-                    <li><code>GET /api/v1/todos</code> · <code>POST /api/v1/todos</code></li>
-                    <li><code>POST /api/v1/todos/<id>/complete</code></li>
-                    <li><code>GET /api/v1/pending</code> · <code>POST /api/v1/pending</code></li>
-                    <li><code>GET /api/v1/accounts</code></li>
-                    <li><code>POST /api/v1/sms-transaction</code> — bank SMS → transaction</li>
+                    <li><code>GET /api/v1/todos</code></li>
+                    <li><code>POST /api/v1/sms-transaction</code></li>
                 </ul>
-
-                <div class="border rounded p-3 bg-light">
-                    <p class="small fw-semibold mb-2">
-                        <i class="bi bi-phone"></i> iOS Shortcuts — bank SMS → transaction
-                    </p>
-                    <ol class="small text-muted mb-2 ps-3">
-                        <li class="mb-1">Generate a token above and <strong>copy it</strong>.</li>
-                        <li class="mb-1">On iPhone open <strong>Shortcuts</strong> → <strong>Automation</strong> → <strong>+</strong>.</li>
-                        <li class="mb-1">Choose <strong>Message</strong>. Optionally filter by sender.</li>
-                        <li class="mb-1">Add <strong>Get Contents of URL</strong>: POST <code>/api/v1/sms-transaction</code> with Bearer token and JSON body text/sender.</li>
-                        <li class="mb-0">Optional dry_run for testing.</li>
-                    </ol>
-                </div>
             </div>
         </div>
 
@@ -112,31 +122,15 @@
             <div class="card-header">Email Configuration Status</div>
             <div class="card-body">
                 {% if mail_configured %}
-                    <p class="text-success mb-2">
-                        <i class="bi bi-check-circle-fill"></i> SMTP is configured. You can send reminders.
-                    </p>
+                    <p class="text-success mb-2">SMTP is configured.</p>
                     {% if current_user.email %}
                     <form method="POST" action="{{ url_for('settings.test_email') }}" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <button type="submit" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-envelope"></i> Send Test Email
-                        </button>
+                        <button type="submit" class="btn btn-outline-primary btn-sm">Send Test Email</button>
                     </form>
-                    {% else %}
-                    <p class="text-muted small mb-0">Save your email above, then you can send a test email.</p>
                     {% endif %}
                 {% else %}
-                    <p class="text-warning mb-2">
-                        <i class="bi bi-exclamation-triangle-fill"></i> SMTP is not configured yet.
-                    </p>
-                    <p class="small text-muted mb-0">
-                        An <strong>admin</strong> must configure SMTP under
-                        {% if current_user.is_admin %}
-                        <a href="{{ url_for('admin.server_settings') }}">Server settings</a>.
-                        {% else %}
-                        Admin → Server settings.
-                        {% endif %}
-                    </p>
+                    <p class="text-warning mb-0">SMTP is not configured yet (admin).</p>
                 {% endif %}
             </div>
         </div>
