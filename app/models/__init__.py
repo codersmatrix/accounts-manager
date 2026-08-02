@@ -8,8 +8,10 @@ from app.models.category import Category
 from app.models.todo import Todo, CADENCE_CHOICES
 from app.models.server_setting import ServerSetting
 from app.models.usage_event import UsageEvent
+from app.models.budget import Budget
 
 __all__ = [
     'User', 'Account', 'Transaction', 'Loan', 'Investment', 'InvestmentTag',
-    'Category', 'Todo', 'ServerSetting', 'UsageEvent', 'INV_TYPES', 'INV_TYPE_LABELS', 'CADENCE_CHOICES',
+    'Category', 'Todo', 'ServerSetting', 'UsageEvent', 'Budget',
+    'INV_TYPES', 'INV_TYPE_LABELS', 'CADENCE_CHOICES',
 ]
