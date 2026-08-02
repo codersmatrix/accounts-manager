@@ -6,6 +6,8 @@ from flask import Blueprint, jsonify, request, g
 from app.extensions import db, csrf, limiter
 from app.security import api_token_required, clamp_text, safe_float, safe_int
 from app.models import Todo, Transaction, Account, CADENCE_CHOICES
+from app.services.sms_parse import parse_sms
+from app.services.categories import ensure_category
 
 api_bp = Blueprint('api', __name__, url_prefix='/api/v1')
 
@@ -190,3 +192,103 @@ def list_accounts():
             for a in accounts
         ]
     })
+
+
+@api_bp.route('/sms-transaction', methods=['POST'])
+@api_token_required
+@limiter.limit('60 per minute')
+def sms_transaction():
+    """Ingest an SMS (from iOS Shortcuts) and create a completed transaction.
+
+    Accepts JSON or form fields:
+      - text / body / message  (required) — full SMS body
+      - sender                (optional) — SMS sender id
+      - account_id            (optional) — override account
+      - status                (optional) — completed (default) | pending
+      - dry_run               (optional) — if true, only return parse result
+
+    Updates account balance when status is completed.
+    """
+    data = request.get_json(silent=True) or {}
+    if not data:
+        data = request.form.to_dict() if request.form else {}
+
+    text = (
+        data.get('text')
+        or data.get('body')
+        or data.get('message')
+        or data.get('sms')
+        or ''
+    )
+    text = clamp_text(str(text), 2000)
+    sender = clamp_text(str(data.get('sender') or data.get('from') or ''), 80) or None
+
+    parsed = parse_sms(text, sender=sender)
+    if not parsed:
+        return jsonify({
+            'error': 'parse_failed',
+            'message': 'Could not extract amount from SMS. Send the full message text.',
+            'received_preview': text[:200],
+        }), 422
+
+    dry_run = str(data.get('dry_run') or '').lower() in ('1', 'true', 'yes')
+    if dry_run:
+        return jsonify({'parsed': parsed.to_dict(), 'dry_run': True})
+
+    accounts = Account.query.filter_by(user_id=g.api_user.id).order_by(Account.id).all()
+    if not accounts:
+        return jsonify({'error': 'no_account', 'message': 'Create a bank/cash account first'}), 400
+
+    account = None
+    account_id = data.get('account_id')
+    if account_id is not None and str(account_id).strip() != '':
+        account = Account.query.filter_by(
+            id=safe_int(account_id), user_id=g.api_user.id
+        ).first()
+        if not account:
+            return jsonify({'error': 'validation', 'message': 'invalid account_id'}), 400
+    elif parsed.account_hint:
+        hint = parsed.account_hint
+        for a in accounts:
+            if hint in (a.name or ''):
+                account = a
+                break
+    if account is None:
+        account = accounts[0]
+
+    status = (data.get('status') or 'completed').strip().lower()
+    if status not in ('completed', 'pending'):
+        status = 'completed'
+
+    category = ensure_category(g.api_user.id, parsed.category)
+
+    tx = Transaction(
+        description=parsed.description,
+        amount=parsed.amount,
+        type=parsed.tx_type,
+        status=status,
+        category=category,
+        account_id=account.id,
+        user_id=g.api_user.id,
+        date=datetime.utcnow(),
+    )
+    db.session.add(tx)
+
+    if status == 'completed':
+        if parsed.tx_type == 'expense':
+            account.balance = (account.balance or 0) - parsed.amount
+        else:
+            account.balance = (account.balance or 0) + parsed.amount
+
+    db.session.commit()
+
+    return jsonify({
+        'ok': True,
+        'parsed': parsed.to_dict(),
+        'transaction': _tx_json(tx),
+        'account': {
+            'id': account.id,
+            'name': account.name,
+            'balance': account.balance,
+        },
+    }), 201
