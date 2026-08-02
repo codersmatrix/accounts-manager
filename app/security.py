@@ -1,5 +1,7 @@
 """Input validation, ownership checks, and security helpers."""
 import re
+import hashlib
+import secrets
 from functools import wraps
 
 from flask import abort, current_app, flash, redirect, url_for
@@ -30,7 +32,6 @@ def validate_password(password: str | None):
         return False, f'Password must be at least {min_len} characters.'
     if len(password) > 128:
         return False, 'Password is too long.'
-    # Basic strength: reject all-whitespace / all same char
     if password.strip() == '' or len(set(password)) < 3:
         return False, 'Password is too weak. Use a mix of characters.'
     return True, None
@@ -52,7 +53,6 @@ def safe_float(value, default=0.0, min_v=None, max_v=None):
         n = min_v
     if max_v is not None and n > max_v:
         n = max_v
-    # Guard against inf/nan
     if n != n or n in (float('inf'), float('-inf')):
         return default
     return n
@@ -85,5 +85,43 @@ def registration_enabled(f):
         if not current_app.config.get('ALLOW_REGISTRATION', True):
             flash('Registration is disabled.', 'warning')
             return redirect(url_for('auth.login'))
+        return f(*args, **kwargs)
+    return wrapped
+
+
+def generate_api_token() -> str:
+    """Return a new URL-safe API token (plaintext, show once)."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_api_token(token: str) -> str:
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
+def find_user_by_api_token(token: str):
+    """Look up user by plaintext Bearer token. Returns User or None."""
+    if not token or len(token) < 20 or len(token) > 200:
+        return None
+    from app.models import User
+    th = hash_api_token(token.strip())
+    return User.query.filter_by(api_token_hash=th).first()
+
+
+def api_token_required(f):
+    """Decorator: require Authorization: Bearer <token>. Sets g.api_user."""
+    from flask import g, jsonify, request
+
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        auth = request.headers.get('Authorization', '')
+        token = None
+        if auth.lower().startswith('bearer '):
+            token = auth[7:].strip()
+        if not token:
+            token = request.headers.get('X-API-Token', '').strip() or None
+        user = find_user_by_api_token(token) if token else None
+        if not user:
+            return jsonify({'error': 'unauthorized', 'message': 'Invalid or missing API token'}), 401
+        g.api_user = user
         return f(*args, **kwargs)
     return wrapped
