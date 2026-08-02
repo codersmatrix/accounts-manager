@@ -11,7 +11,7 @@
                     <li>Enter the 6-digit code below to confirm.</li>
                 </ol>
                 <div class="text-center my-3">
-                    <img src="{{ qr_url }}" alt="MFA QR code" width="200" height="200" class="border rounded">
+                    <div class="d-inline-block border rounded p-2 bg-white" style="width:220px;height:220px;">{{ qr_svg|safe }}</div>
                 </div>
                 <p class="small text-center">Secret key:<br>
                     <code class="user-select-all">{{ secret }}</code>

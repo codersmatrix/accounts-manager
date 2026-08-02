@@ -1,7 +1,11 @@
 """TOTP multi-factor authentication helpers."""
 from __future__ import annotations
 
+import io
+
 import pyotp
+import qrcode
+from qrcode.image.svg import SvgPathImage
 
 
 ISSUER = 'Accounts Manager'
@@ -27,3 +31,22 @@ def verify_code(secret: str | None, code: str | None) -> bool:
         return bool(totp.verify(code, valid_window=1))
     except Exception:
         return False
+
+
+def qr_svg_markup(data: str, box_size: int = 6) -> str:
+    """Generate an SVG QR code as an HTML-safe string (no external service)."""
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=box_size,
+        border=2,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(image_factory=SvgPathImage)
+    buf = io.BytesIO()
+    img.save(buf)
+    svg = buf.getvalue().decode('utf-8')
+    if 'width=' not in svg[:80]:
+        svg = svg.replace('<svg', '<svg width="200" height="200"', 1)
+    return svg
