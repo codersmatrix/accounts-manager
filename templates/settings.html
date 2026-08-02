@@ -26,8 +26,8 @@
             <div class="card-body">
                 <p class="small text-muted">
                     Use this token with iOS Shortcuts or other tools.
-                    Send it as <code>Authorization: Bearer &lt;token&gt;</code>
-                    or header <code>X-API-Token: &lt;token&gt;</code>.
+                    Send it as <code>Authorization: Bearer <token></code>
+                    or header <code>X-API-Token: <token></code>.
                 </p>
 
                 {% if new_api_token %}
@@ -77,13 +77,47 @@
 
                 <hr>
                 <p class="small mb-1 fw-semibold">Example endpoints</p>
-                <ul class="small text-muted mb-0">
+                <ul class="small text-muted mb-3">
                     <li><code>GET /api/v1/me</code></li>
                     <li><code>GET /api/v1/todos</code> · <code>POST /api/v1/todos</code></li>
-                    <li><code>POST /api/v1/todos/&lt;id&gt;/complete</code></li>
+                    <li><code>POST /api/v1/todos/<id>/complete</code></li>
                     <li><code>GET /api/v1/pending</code> · <code>POST /api/v1/pending</code></li>
                     <li><code>GET /api/v1/accounts</code></li>
+                    <li><code>POST /api/v1/sms-transaction</code> — bank SMS → transaction</li>
                 </ul>
+
+                <div class="border rounded p-3 bg-light">
+                    <p class="small fw-semibold mb-2">
+                        <i class="bi bi-phone"></i> iOS Shortcuts — bank SMS → transaction
+                    </p>
+                    <ol class="small text-muted mb-2 ps-3">
+                        <li class="mb-1">Generate a token above and <strong>copy it</strong>.</li>
+                        <li class="mb-1">On iPhone open <strong>Shortcuts</strong> → <strong>Automation</strong> → <strong>+</strong>.</li>
+                        <li class="mb-1">Choose <strong>Message</strong>. Optionally filter by sender (e.g. HDFC, SBIINB, AX-HDFCBK, VK-PhonePe).</li>
+                        <li class="mb-1">Add action <strong>Get Contents of URL</strong>:
+                            <ul class="mt-1 mb-1">
+                                <li>URL: <code>https://YOUR-DOMAIN/api/v1/sms-transaction</code></li>
+                                <li>Method: <strong>POST</strong></li>
+                                <li>Headers:
+                                    <code>Authorization</code> = <code>Bearer YOUR_TOKEN</code>,
+                                    <code>Content-Type</code> = <code>application/json</code>
+                                </li>
+                                <li>Body (JSON):
+                                    <pre class="small bg-white border rounded p-2 mb-0 mt-1" style="white-space:pre-wrap;">{
+  "text": "Message Body",
+  "sender": "Sender"
+}</pre>
+                                    Map <em>Message Body</em> / <em>Sender</em> from the automation input.
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="mb-1">Optional: first test with <code>"dry_run": true</code> in the JSON (parse only, no save).</li>
+                        <li class="mb-0">Turn off <strong>Ask Before Running</strong> if you want it automatic (iOS may still confirm for Message automations).</li>
+                    </ol>
+                    <p class="small text-muted mb-0">
+                        Name accounts with last 4 digits (e.g. <code>HDFC 1234</code>) so SMS A/c hints can match the right account.
+                    </p>
+                </div>
             </div>
         </div>
 
