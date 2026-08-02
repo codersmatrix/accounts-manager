@@ -71,7 +71,6 @@ def safe_int(value, default=0, min_v=None, max_v=None):
 
 
 def require_owner(obj, user_id_attr='user_id'):
-    """Abort 404 if object is missing or not owned (no IDOR leak)."""
     if obj is None:
         abort(404)
     if getattr(obj, user_id_attr, None) != current_user.id:
@@ -91,7 +90,6 @@ def registration_enabled(f):
 
 
 def admin_required(f):
-    """Require logged-in user with is_admin."""
     @wraps(f)
     def wrapped(*args, **kwargs):
         if not current_user.is_authenticated:
@@ -104,7 +102,6 @@ def admin_required(f):
 
 
 def generate_api_token() -> str:
-    """Return a new URL-safe API token (plaintext, show once)."""
     return secrets.token_urlsafe(32)
 
 
@@ -113,7 +110,6 @@ def hash_api_token(token: str) -> str:
 
 
 def find_user_by_api_token(token: str):
-    """Look up user by plaintext Bearer token. Returns User or None."""
     if not token or len(token) < 20 or len(token) > 200:
         return None
     from app.models import User
@@ -122,7 +118,6 @@ def find_user_by_api_token(token: str):
 
 
 def api_token_required(f):
-    """Decorator: require Authorization: Bearer <token>. Sets g.api_user."""
     from flask import g, jsonify, request
 
     @wraps(f)
