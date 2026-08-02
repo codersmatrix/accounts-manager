@@ -1,8 +1,9 @@
-"""Admin: server-wide settings (SMTP, registration, etc.)."""
+"""Admin: analytics, users, server settings."""
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
 from app.extensions import db, limiter
+from app.models import User
 from app.security import admin_required, clamp_text, safe_int
 from app.services.server_settings import (
     get_all_settings,
@@ -10,8 +11,74 @@ from app.services.server_settings import (
     is_mail_configured,
 )
 from app.services.email import send_email
+from app.services.analytics import system_counts, analytics_summary, log_event
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+
+@admin_bp.route('/')
+@admin_bp.route('/dashboard')
+@login_required
+@admin_required
+def dashboard():
+    days = safe_int(request.args.get('days'), 7, 1, 90)
+    summary = analytics_summary(days=days)
+    counts = system_counts()
+    return render_template(
+        'admin_dashboard.html',
+        summary=summary,
+        counts=counts,
+        days=days,
+        mail_configured=is_mail_configured(),
+    )
+
+
+@admin_bp.route('/users')
+@login_required
+@admin_required
+def users():
+    all_users = User.query.order_by(User.id.asc()).all()
+    return render_template('admin_users.html', users=all_users)
+
+
+@admin_bp.route('/users/<int:user_id>/toggle_admin', methods=['POST'])
+@login_required
+@admin_required
+def toggle_admin(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('You cannot remove your own admin role here.', 'warning')
+        return redirect(url_for('admin.users'))
+    user.is_admin = not bool(user.is_admin)
+    db.session.commit()
+    log_event('admin_action', meta=f'toggle_admin user={user.id} -> {user.is_admin}')
+    flash(f'{user.username}: admin = {user.is_admin}', 'success')
+    return redirect(url_for('admin.users'))
+
+
+@admin_bp.route('/users/<int:user_id>/toggle_active', methods=['POST'])
+@login_required
+@admin_required
+def toggle_active(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('You cannot disable your own account.', 'warning')
+        return redirect(url_for('admin.users'))
+    current = True if user.is_active_flag is None else bool(user.is_active_flag)
+    user.is_active_flag = not current
+    db.session.commit()
+    log_event('admin_action', meta=f'toggle_active user={user.id} -> {user.is_active_flag}')
+    flash(f'{user.username}: active = {user.is_active_flag}', 'success')
+    return redirect(url_for('admin.users'))
+
+
+@admin_bp.route('/analytics')
+@login_required
+@admin_required
+def analytics():
+    days = safe_int(request.args.get('days'), 14, 1, 90)
+    summary = analytics_summary(days=days)
+    return render_template('admin_analytics.html', summary=summary, days=days)
 
 
 @admin_bp.route('/settings', methods=['GET', 'POST'])
@@ -39,6 +106,7 @@ def server_settings():
             'true' if request.form.get('allow_registration') in ('on', 'true', '1', 'yes') else 'false',
         )
         db.session.commit()
+        log_event('admin_action', meta='server_settings_saved')
         flash('Server settings saved.', 'success')
         return redirect(url_for('admin.server_settings'))
 
