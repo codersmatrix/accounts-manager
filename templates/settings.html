@@ -2,7 +2,14 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-7">
-        <h2 class="mb-4"><i class="bi bi-gear"></i> Settings</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <h2 class="mb-0"><i class="bi bi-gear"></i> Settings</h2>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('admin.server_settings') }}" class="btn btn-outline-dark btn-sm">
+                <i class="bi bi-shield-lock"></i> Server settings (admin)
+            </a>
+            {% endif %}
+        </div>
 
         <div class="card shadow mb-4">
             <div class="card-header">Your Email</div>
@@ -93,30 +100,10 @@
                     <ol class="small text-muted mb-2 ps-3">
                         <li class="mb-1">Generate a token above and <strong>copy it</strong>.</li>
                         <li class="mb-1">On iPhone open <strong>Shortcuts</strong> → <strong>Automation</strong> → <strong>+</strong>.</li>
-                        <li class="mb-1">Choose <strong>Message</strong>. Optionally filter by sender (e.g. HDFC, SBIINB, AX-HDFCBK, VK-PhonePe).</li>
-                        <li class="mb-1">Add action <strong>Get Contents of URL</strong>:
-                            <ul class="mt-1 mb-1">
-                                <li>URL: <code>https://YOUR-DOMAIN/api/v1/sms-transaction</code></li>
-                                <li>Method: <strong>POST</strong></li>
-                                <li>Headers:
-                                    <code>Authorization</code> = <code>Bearer YOUR_TOKEN</code>,
-                                    <code>Content-Type</code> = <code>application/json</code>
-                                </li>
-                                <li>Body (JSON):
-                                    <pre class="small bg-white border rounded p-2 mb-0 mt-1" style="white-space:pre-wrap;">{
-  "text": "Message Body",
-  "sender": "Sender"
-}</pre>
-                                    Map <em>Message Body</em> / <em>Sender</em> from the automation input.
-                                </li>
-                            </ul>
-                        </li>
-                        <li class="mb-1">Optional: first test with <code>"dry_run": true</code> in the JSON (parse only, no save).</li>
-                        <li class="mb-0">Turn off <strong>Ask Before Running</strong> if you want it automatic (iOS may still confirm for Message automations).</li>
+                        <li class="mb-1">Choose <strong>Message</strong>. Optionally filter by sender.</li>
+                        <li class="mb-1">Add <strong>Get Contents of URL</strong>: POST <code>/api/v1/sms-transaction</code> with Bearer token and JSON body text/sender.</li>
+                        <li class="mb-0">Optional dry_run for testing.</li>
                     </ol>
-                    <p class="small text-muted mb-0">
-                        Name accounts with last 4 digits (e.g. <code>HDFC 1234</code>) so SMS A/c hints can match the right account.
-                    </p>
                 </div>
             </div>
         </div>
@@ -143,8 +130,12 @@
                         <i class="bi bi-exclamation-triangle-fill"></i> SMTP is not configured yet.
                     </p>
                     <p class="small text-muted mb-0">
-                        Set <code>MAIL_SERVER</code>, <code>MAIL_USERNAME</code>, <code>MAIL_PASSWORD</code>
-                        (and related) environment variables to enable email.
+                        An <strong>admin</strong> must configure SMTP under
+                        {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin.server_settings') }}">Server settings</a>.
+                        {% else %}
+                        Admin → Server settings.
+                        {% endif %}
                     </p>
                 {% endif %}
             </div>
