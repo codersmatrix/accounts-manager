@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="mb-4">Edit Todo / Reminder</h3>
+                <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" name="title" class="form-control" required maxlength="200"
+                               value="{{ todo.title }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2">{{ todo.notes or '' }}</textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cadence</label>
+                            <select name="cadence" class="form-select" id="cadence">
+                                {% for val, label in cadences %}
+                                <option value="{{ val }}" {% if todo.cadence == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Next due</label>
+                            <input type="date" name="next_due" class="form-control"
+                                   value="{{ todo.next_due.isoformat() if todo.next_due else '' }}">
+                        </div>
+                    </div>
+                    <div class="mb-3" id="dayBox">
+                        <label class="form-label">Day (weekly: 0=Mon..6=Sun / monthly: 1-28)</label>
+                        <input type="number" name="cadence_day" class="form-control" min="0" max="28"
+                               value="{{ todo.cadence_day if todo.cadence_day is not none else '' }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <a href="{{ url_for('todos.todos') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
