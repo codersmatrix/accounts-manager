@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="mb-3"><i class="bi bi-phone"></i> Set up two-factor authentication</h3>
+                <ol class="small text-muted">
+                    <li>Install an authenticator app (Google Authenticator, Authy, 1Password, etc.).</li>
+                    <li>Scan the QR code or enter the secret key manually.</li>
+                    <li>Enter the 6-digit code below to confirm.</li>
+                </ol>
+                <div class="text-center my-3">
+                    <img src="{{ qr_url }}" alt="MFA QR code" width="200" height="200" class="border rounded">
+                </div>
+                <p class="small text-center">Secret key:<br>
+                    <code class="user-select-all">{{ secret }}</code>
+                </p>
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="mb-3">
+                        <label class="form-label">Confirmation code</label>
+                        <input type="text" name="code" class="form-control text-center" inputmode="numeric"
+                               autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enable MFA</button>
+                    <a href="{{ url_for('settings.settings') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

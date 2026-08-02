@@ -15,6 +15,8 @@ class User(UserMixin, db.Model):
     is_active_flag = db.Column(db.Boolean, default=True)
     last_login_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=True)
+    mfa_secret = db.Column(db.String(32), nullable=True)
+    mfa_enabled = db.Column(db.Boolean, default=False)
 
     accounts = db.relationship('Account', backref='owner', lazy=True)
     transactions = db.relationship('Transaction', backref='owner', lazy=True)
