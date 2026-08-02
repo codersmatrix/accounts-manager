@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h2 class="mb-0"><i class="bi bi-shield-lock"></i> Admin</h2>
+    <div class="btn-group btn-group-sm">
+        <a href="?days=7" class="btn btn-outline-secondary {% if days == 7 %}active{% endif %}">7d</a>
+        <a href="?days=14" class="btn btn-outline-secondary {% if days == 14 %}active{% endif %}">14d</a>
+        <a href="?days=30" class="btn btn-outline-secondary {% if days == 30 %}active{% endif %}">30d</a>
+    </div>
+</div>
+<div class="mb-3 d-flex flex-wrap gap-2">
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-sm btn-dark">Overview</a>
+    <a href="{{ url_for('admin.analytics') }}" class="btn btn-sm btn-outline-dark">Analytics</a>
+    <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-dark">Users</a>
+    <a href="{{ url_for('admin.server_settings') }}" class="btn btn-sm btn-outline-dark">Server settings</a>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="card shadow-sm h-100"><div class="card-body">
+        <div class="text-muted small">Users</div>
+        <div class="fs-3 fw-bold">{{ counts.users }}</div>
+        <div class="small">{{ counts.admins }} admin(s)</div>
+    </div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm h-100"><div class="card-body">
+        <div class="text-muted small">Transactions</div>
+        <div class="fs-3 fw-bold">{{ counts.transactions }}</div>
+        <div class="small">{{ counts.pending_tx }} pending</div>
+    </div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm h-100"><div class="card-body">
+        <div class="text-muted small">Events ({{ days }}d)</div>
+        <div class="fs-3 fw-bold">{{ summary.total_events }}</div>
+        <div class="small">{{ summary.logins }} logins \u00b7 {{ summary.api_calls }} API</div>
+    </div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm h-100"><div class="card-body">
+        <div class="text-muted small">System</div>
+        <div class="small">Accounts {{ counts.accounts }}</div>
+        <div class="small">Loans {{ counts.loans }} \u00b7 Inv {{ counts.investments }}</div>
+        <div class="small">Todos {{ counts.todos }}</div>
+        <div class="small mt-1">{% if mail_configured %}<span class="text-success">SMTP OK</span>{% else %}<span class="text-warning">SMTP off</span>{% endif %}</div>
+    </div></div></div>
+</div>
+<div class="row g-3">
+    <div class="col-md-6"><div class="card shadow-sm">
+        <div class="card-header">Events by type ({{ days }}d)</div>
+        <div class="card-body p-0"><table class="table table-sm mb-0"><tbody>
+        {% for t, n in summary.by_type.items() %}
+        <tr><td>{{ t }}</td><td class="text-end fw-semibold">{{ n }}</td></tr>
+        {% else %}<tr><td class="text-muted">No events yet</td></tr>{% endfor %}
+        </tbody></table></div>
+    </div></div>
+    <div class="col-md-6"><div class="card shadow-sm">
+        <div class="card-header">Top pages</div>
+        <div class="card-body p-0"><table class="table table-sm mb-0"><tbody>
+        {% for path, n in summary.top_paths %}
+        <tr><td><code class="small">{{ path }}</code></td><td class="text-end">{{ n }}</td></tr>
+        {% else %}<tr><td class="text-muted">No page views yet</td></tr>{% endfor %}
+        </tbody></table></div>
+    </div></div>
+</div>
+<div class="card shadow-sm mt-3">
+    <div class="card-header">Recent activity</div>
+    <div class="table-responsive"><table class="table table-sm table-striped mb-0">
+        <thead><tr><th>When</th><th>Type</th><th>User</th><th>Path</th><th>Meta</th></tr></thead>
+        <tbody>
+        {% for e in summary.recent %}
+        <tr>
+            <td class="small text-nowrap">{{ e.created_at.strftime('%d %b %H:%M') if e.created_at else '' }}</td>
+            <td><span class="badge bg-secondary">{{ e.event_type }}</span></td>
+            <td>{{ e.user_id or '\u2014' }}</td>
+            <td><code class="small">{{ e.path or '' }}</code></td>
+            <td class="small">{{ e.meta or '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted">No events yet. Browse the app to generate data.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h2 class="mb-0"><i class="bi bi-graph-up"></i> Usage analytics</h2>
+    <div class="btn-group btn-group-sm">
+        <a href="?days=7" class="btn btn-outline-secondary {% if days == 7 %}active{% endif %}">7d</a>
+        <a href="?days=14" class="btn btn-outline-secondary {% if days == 14 %}active{% endif %}">14d</a>
+        <a href="?days=30" class="btn btn-outline-secondary {% if days == 30 %}active{% endif %}">30d</a>
+        <a href="?days=90" class="btn btn-outline-secondary {% if days == 90 %}active{% endif %}">90d</a>
+    </div>
+</div>
+<div class="mb-3 d-flex flex-wrap gap-2">
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-sm btn-outline-dark">Overview</a>
+    <a href="{{ url_for('admin.analytics') }}" class="btn btn-sm btn-dark">Analytics</a>
+    <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-dark">Users</a>
+    <a href="{{ url_for('admin.server_settings') }}" class="btn btn-sm btn-outline-dark">Server settings</a>
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">Total events</div><div class="fs-3 fw-bold">{{ summary.total_events }}</div>
+    </div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">Logins</div><div class="fs-3 fw-bold">{{ summary.logins }}</div>
+    </div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body">
+        <div class="text-muted small">API calls</div><div class="fs-3 fw-bold">{{ summary.api_calls }}</div>
+    </div></div></div>
+</div>
+<div class="card shadow-sm mb-3">
+    <div class="card-header">Daily volume</div>
+    <div class="card-body">
+        {% if summary.days_series %}
+        <div class="d-flex align-items-end gap-1" style="height:120px;">
+            {% set maxn = summary.max_day or 1 %}
+            {% for day, n in summary.days_series %}
+            <div class="flex-fill text-center" title="{{ day }}: {{ n }}">
+                <div class="bg-primary mx-auto" style="width:80%; height: {{ (n / maxn * 100)|round(1) }}%; min-height:2px;"></div>
+                <div class="small text-muted" style="font-size:0.65rem;">{{ day[5:] }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}<p class="text-muted mb-0">No data for this period.</p>{% endif %}
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-md-6"><div class="card shadow-sm">
+        <div class="card-header">By event type</div>
+        <ul class="list-group list-group-flush">
+            {% for t, n in summary.by_type.items() %}
+            <li class="list-group-item d-flex justify-content-between"><span>{{ t }}</span><strong>{{ n }}</strong></li>
+            {% else %}<li class="list-group-item text-muted">None</li>{% endfor %}
+        </ul>
+    </div></div>
+    <div class="col-md-6"><div class="card shadow-sm">
+        <div class="card-header">Top paths</div>
+        <ul class="list-group list-group-flush">
+            {% for path, n in summary.top_paths %}
+            <li class="list-group-item d-flex justify-content-between"><code class="small">{{ path }}</code><strong>{{ n }}</strong></li>
+            {% else %}<li class="list-group-item text-muted">None</li>{% endfor %}
+        </ul>
+    </div></div>
+</div>
+{% endblock %}
