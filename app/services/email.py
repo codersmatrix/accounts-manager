@@ -15,10 +15,9 @@ def is_mail_configured():
 
 
 def send_email(to_email, subject, html_body, text_body=None):
-    """Send an email via SMTP. Returns (success: bool, error_message: str|None)."""
     from app.services.server_settings import mail_config, is_mail_configured as _cfg_ok
     if not _cfg_ok():
-        return False, 'Email is not configured. An admin must set SMTP under Admin → Server settings.'
+        return False, 'Email is not configured. An admin must set SMTP under Admin \u2192 Server settings.'
     if not to_email:
         return False, 'No recipient email address.'
 
@@ -46,29 +45,29 @@ def build_reminder_email(user, transactions):
     if len(transactions) == 1:
         tx = transactions[0]
         due = tx.due_date.strftime('%d %b %Y') if tx.due_date else 'No due date'
-        subject = f'Payment Reminder: {tx.description} – Rs {tx.amount:.2f}'
+        subject = f'Payment Reminder: {tx.description} \u2013 Rs {tx.amount:.2f}'
         html = (
-            f'<html><body style="font-family:Arial,sans-serif;">' 
+            f'<html><body style="font-family:Arial,sans-serif;">'
             f'<h2>Payment Reminder</h2><p>Hi {user.username},</p>'
-            f'<p>{tx.description} – Rs {tx.amount:.2f} due {due}</p>'
+            f'<p>{tx.description} \u2013 Rs {tx.amount:.2f} due {due}</p>'
             f'<p>Category: {tx.category} | Account: {tx.account.name}</p>'
-            f'<p>– Accounts Manager</p></body></html>'
+            f'<p>\u2013 Accounts Manager</p></body></html>'
         )
-        text = f'Payment reminder: {tx.description} – Rs {tx.amount:.2f} due {due}'
+        text = f'Payment reminder: {tx.description} \u2013 Rs {tx.amount:.2f} due {due}'
     else:
         total = sum(t.amount for t in transactions if t.type == 'expense')
         subject = f'Payment Reminders: {len(transactions)} items (Rs {total:.2f})'
         rows = ''.join(
             f'<tr><td>{t.description}</td><td>Rs {t.amount:.2f}</td>'
-            f'<td>{t.due_date.strftime("%d %b") if t.due_date else "—"}</td></tr>'
+            f'<td>{t.due_date.strftime("%d %b") if t.due_date else "\u2014"}</td></tr>'
             for t in transactions
         )
         html = (
-            f'<html><body style="font-family:Arial,sans-serif;">' 
+            f'<html><body style="font-family:Arial,sans-serif;">'
             f'<h2>Payment Reminders</h2><p>Hi {user.username},</p>'
             f'<table border="1" cellpadding="6" cellspacing="0">'
             f'<tr><th>Description</th><th>Amount</th><th>Due</th></tr>{rows}</table>'
-            f'<p>Total: Rs {total:.2f}</p><p>– Accounts Manager</p></body></html>'
+            f'<p>Total: Rs {total:.2f}</p><p>\u2013 Accounts Manager</p></body></html>'
         )
         text = f'{len(transactions)} payment reminders totaling Rs {total:.2f}'
     return subject, html, text
