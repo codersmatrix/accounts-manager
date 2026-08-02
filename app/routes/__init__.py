@@ -11,6 +11,7 @@ def register_blueprints(app):
     from app.routes.settings import settings_bp
     from app.routes.pwa import pwa_bp
     from app.routes.todos import todos_bp
+    from app.routes.api import api_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -20,4 +21,5 @@ def register_blueprints(app):
     app.register_blueprint(investments_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(todos_bp)
+    app.register_blueprint(api_bp)
     app.register_blueprint(pwa_bp)
