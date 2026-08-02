@@ -12,6 +12,9 @@ class User(UserMixin, db.Model):
     api_token_hash = db.Column(db.String(64), nullable=True, index=True)
     api_token_prefix = db.Column(db.String(12), nullable=True)
     is_admin = db.Column(db.Boolean, default=False)
+    is_active_flag = db.Column(db.Boolean, default=True)
+    last_login_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=True)
 
     accounts = db.relationship('Account', backref='owner', lazy=True)
     transactions = db.relationship('Transaction', backref='owner', lazy=True)
@@ -20,6 +23,12 @@ class User(UserMixin, db.Model):
 
     def has_api_token(self) -> bool:
         return bool(self.api_token_hash)
+
+    @property
+    def is_active(self):
+        if self.is_active_flag is None:
+            return True
+        return bool(self.is_active_flag)
 
     def __repr__(self):
         return f'<User {self.username}>'
