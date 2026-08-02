@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="mb-4">Edit Transaction</h3>
+                <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" name="description" class="form-control" required maxlength="200"
+                               value="{{ tx.description }}">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Amount (₹)</label>
+                            <input type="number" step="0.01" name="amount" class="form-control" required
+                                   value="{{ '%.2f'|format(tx.amount) }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Type</label>
+                            <select name="type" class="form-select">
+                                <option value="expense" {% if tx.type == 'expense' %}selected{% endif %}>Expense</option>
+                                <option value="income" {% if tx.type == 'income' %}selected{% endif %}>Income</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Account</label>
+                        <select name="account_id" class="form-select" required>
+                            {% for acc in accounts %}
+                            <option value="{{ acc.id }}" {% if acc.id == tx.account_id %}selected{% endif %}>
+                                {{ acc.name }} (₹ {{ '%.2f'|format(acc.balance) }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <input type="text" name="category" class="form-control" list="catList"
+                               value="{{ tx.category or 'General' }}" autocomplete="off">
+                        <datalist id="catList">
+                            {% for c in categories %}
+                            <option value="{{ c }}"></option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="completed" {% if tx.status == 'completed' %}selected{% endif %}>Completed</option>
+                                <option value="pending" {% if tx.status == 'pending' %}selected{% endif %}>Pending</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Due date</label>
+                            <input type="date" name="due_date" class="form-control"
+                                   value="{{ tx.due_date.isoformat() if tx.due_date else '' }}">
+                        </div>
+                    </div>
+                    {% if tx.loan_id or tx.investment_id %}
+                    <div class="alert alert-info small">
+                        {% if tx.loan_id %}Linked to a loan — changing amount/status updates outstanding.{% endif %}
+                        {% if tx.investment_id %}Linked to an investment — capital is recalculated on save.{% endif %}
+                    </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                    <a href="{{ url_for('transactions.transactions') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
