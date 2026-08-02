@@ -1,7 +1,7 @@
 """Parse bank / UPI SMS text into transaction fields.
 
 Handles common Indian bank patterns (HDFC, SBI, ICICI, Axis, PhonePe, GPay, etc.).
-Returns a dict or None if amount cannot be extracted.
+Category prefers merchant/purpose over payment rail (UPI).
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from typing import Optional
 @dataclass
 class ParsedSms:
     amount: float
-    tx_type: str  # expense | income
+    tx_type: str
     description: str
     category: str
     merchant: Optional[str] = None
@@ -25,9 +25,9 @@ class ParsedSms:
 
 
 AMOUNT_RE = re.compile(
-    r'(?:(?:inr|rs\.?|₹)\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?))'
+    r'(?:(?:inr|rs\.?|\u20b9)\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?))'
     r'|'
-    r'([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)\s*(?:inr|rs\.?|₹)',
+    r'([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)\s*(?:inr|rs\.?|\u20b9)',
     re.IGNORECASE,
 )
 
@@ -58,17 +58,66 @@ ACCOUNT_RE = re.compile(
 )
 
 CATEGORY_RULES = [
-    (re.compile(r'upi|phonepe|gpay|google pay|paytm|bhim', re.I), 'UPI'),
-    (re.compile(r'fuel|petrol|diesel|hpcl|bpcl|iocl', re.I), 'Fuel'),
-    (re.compile(r'swigg|zomato|restaurant|cafe|food', re.I), 'Food'),
-    (re.compile(r'amazon|flipkart|myntra|ajio', re.I), 'Shopping'),
-    (re.compile(r'electric|bescom|mse[bB]|water|gas bill', re.I), 'Utilities'),
-    (re.compile(r'netflix|spotify|prime|hotstar|youtube', re.I), 'Subscriptions'),
-    (re.compile(r'salary|payroll', re.I), 'Salary'),
-    (re.compile(r'atm|cash wdl|withdrawal', re.I), 'Cash'),
-    (re.compile(r'emi|loan', re.I), 'Loan'),
-    (re.compile(r'interest|dividend', re.I), 'Interest'),
+    (re.compile(r'\b(salary|payroll|stipend)\b', re.I), 'Salary'),
+    (re.compile(r'\b(interest|dividend|int\.?\s*cr)\b', re.I), 'Interest'),
+    (re.compile(r'\b(refund|cashback|cash back|reward)\b', re.I), 'Refund'),
+    (re.compile(
+        r'swiggy|zomato|dominos|domino\'?s|pizza|mcdonald|mcd|kfc|starbucks|'
+        r'cafe|restaurant|dunzo|foodpanda|box8|faasos|behrouz|food\s*order',
+        re.I,
+    ), 'Food'),
+    (re.compile(
+        r'bigbasket|big basket|blinkit|zepto|instamart|jiomart|dmart|d-?mart|'
+        r'reliance fresh|nature\'?s basket|grocery|groceries|supermarket',
+        re.I,
+    ), 'Groceries'),
+    (re.compile(
+        r'\b(fuel|petrol|diesel|hpcl|bpcl|iocl|indian oil|bharat petroleum|'
+        r'hindustan petroleum|shell\s*petrol|reliance\s*petro)\b',
+        re.I,
+    ), 'Fuel'),
+    (re.compile(
+        r'\b(uber|ola|rapido|metro|irctc|railway|makemytrip|mmt|goibibo|'
+        r'redbus|indigo|airindia|spicejet|vistara|fastag|toll|parking)\b',
+        re.I,
+    ), 'Transport'),
+    (re.compile(
+        r'amazon|flipkart|myntra|ajio|meesho|nykaa|tatacliq|snapdeal|'
+        r'ikea|decathlon|croma|reliance digital',
+        re.I,
+    ), 'Shopping'),
+    (re.compile(
+        r'netflix|spotify|prime\s*video|amazon\s*prime|hotstar|disney|'
+        r'youtube\s*premium|sony\s*liv|zee5|apple\s*music|icloud|'
+        r'google\s*one|microsoft\s*365|subscription',
+        re.I,
+    ), 'Subscriptions'),
+    (re.compile(
+        r'\b(electric|electricity|bescom|mse[bs]|tata\s*power|adani\s*power|'
+        r'water\s*bill|gas\s*bill|indane|bharatgas|broadband|'
+        r'airtel|jio|vodafone|bsnl|postpaid|prepaid|recharge|bbps|bill\s*pay)\b',
+        re.I,
+    ), 'Utilities'),
+    (re.compile(
+        r'\b(pharmacy|apollo|1mg|pharmeasy|netmeds|hospital|clinic|'
+        r'medicine|medical|diagnostic)\b',
+        re.I,
+    ), 'Health'),
+    (re.compile(
+        r'\b(school|college|tuition|udemy|coursera|byju|unacademy|education|fees)\b',
+        re.I,
+    ), 'Education'),
+    (re.compile(r'\b(emi|loan\s*emi|loan\s*repay|nbfc)\b', re.I), 'Loan'),
+    (re.compile(r'\b(atm|cash\s*wdl|cash\s*withdraw|withdrawal)\b', re.I), 'Cash'),
+    (re.compile(
+        r'\b(insurance|lic|policybazaar|mutual\s*fund|sip\b|groww|zerodha|upstox)\b',
+        re.I,
+    ), 'Investment'),
 ]
+
+UPI_RAIL_RE = re.compile(
+    r'\b(upi|phonepe|gpay|google\s*pay|paytm|bhim|bharatpe)\b', re.I
+)
 
 
 def _parse_amount(text: str) -> Optional[float]:
@@ -107,7 +156,7 @@ def _merchant(text: str) -> Optional[str]:
         if g:
             name = g.strip(' .-_')
             name = re.split(
-                r"\b(?:is successful|successful|has been|on \d|via|using|ref)\b",
+                r'\b(?:is successful|successful|has been|on \d|via|using|ref)\b',
                 name,
                 maxsplit=1,
                 flags=re.I,
@@ -125,11 +174,19 @@ def _account_hint(text: str) -> Optional[str]:
 
 
 def _category(text: str, merchant: Optional[str], tx_type: str) -> str:
-    blob = f'{text} {merchant or ""}'
-    for pattern, cat in CATEGORY_RULES:
-        if pattern.search(blob):
-            return cat
-    return 'Income' if tx_type == 'income' else 'Expense'
+    blobs = []
+    if merchant:
+        blobs.append(merchant)
+    blobs.append(text or '')
+    for blob in blobs:
+        for pattern, cat in CATEGORY_RULES:
+            if pattern.search(blob):
+                return cat
+    if tx_type == 'income':
+        return 'Income'
+    if UPI_RAIL_RE.search(text or '') or UPI_RAIL_RE.search(merchant or ''):
+        return 'Transfer'
+    return 'Expense'
 
 
 def _description(merchant: Optional[str], tx_type: str, text: str) -> str:
@@ -154,6 +211,7 @@ def parse_sms(text: str, sender: str | None = None) -> Optional[ParsedSms]:
     if sender and not merchant:
         if not re.match(r'^\+?[0-9]{8,}$', sender.strip()):
             merchant = sender.strip()[:40]
+            category = _category(text, merchant, tx_type)
     desc = _description(merchant, tx_type, text)
     return ParsedSms(
         amount=round(amount, 2),
